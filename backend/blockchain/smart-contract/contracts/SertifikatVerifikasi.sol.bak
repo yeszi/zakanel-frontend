@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+contract SertifikatVerifikasi {
+    address public admin;
+
+    // menyimpan status aktif/nonaktif tiap wallet penerbit
+    mapping(address => bool) public penerbitAktif;
+
+    // menyimpan Merkle Root tiap batch (key = batchId)
+    mapping(uint256 => bytes32) public merkleRoots;
+
+    event PenerbitDitambahkan(address indexed wallet);
+    event PenerbitDicabut(address indexed wallet);
+    event RootDisimpan(uint256 indexed batchId, bytes32 merkleRoot);
+
+    modifier hanyaAdmin() {
+        require(msg.sender == admin, "Hanya admin yang bisa memanggil fungsi ini");
+        _;
+    }
+
+    modifier hanyaPenerbitAktif() {
+        require(penerbitAktif[msg.sender], "Wallet ini bukan penerbit aktif");
+        _;
+    }
+
+    constructor() {
+        admin = msg.sender; // wallet yang deploy otomatis jadi admin
+    }
+
+    // admin menambahkan wallet penerbit baru
+    function tambahPenerbit(address _wallet) external hanyaAdmin {
+        penerbitAktif[_wallet] = true;
+        emit PenerbitDitambahkan(_wallet);
+    }
+
+    // admin mencabut hak akses penerbit
+    function cabutPenerbit(address _wallet) external hanyaAdmin {
+        penerbitAktif[_wallet] = false;
+        emit PenerbitDicabut(_wallet);
+    }
+
+    // penerbit aktif menyimpan Merkle Root untuk satu batch sertifikat
+    function simpanRoot(uint256 _batchId, bytes32 _merkleRoot) external hanyaPenerbitAktif {
+        merkleRoots[_batchId] = _merkleRoot;
+        emit RootDisimpan(_batchId, _merkleRoot);
+    }
+
+    // cek status aktif tidaknya sebuah wallet penerbit
+    function isPenerbitActive(address _wallet) external view returns (bool) {
+        return penerbitAktif[_wallet];
+    }
+
+    // ambil Merkle Root berdasarkan batchId (untuk proses verifikasi publik)
+    function getRoot(uint256 _batchId) external view returns (bytes32) {
+        return merkleRoots[_batchId];
+    }
+}

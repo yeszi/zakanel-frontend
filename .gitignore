@@ -1,0 +1,32 @@
+// rahasia adalah
+*.env
+*.env.local
+*.env.*.local
+
+// backend
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.pytest_cache/
+backend/.coverage
+backend/instance/
+
+// frontend dan blockchainnya
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+blockchain/node_modules/
+blockchain/cache/
+blockchain/artifacts/
+blockchain/coverage/
+blockchain/.env
+
+// dockernya
+*.pid
+*.log
+
+// os(windows) dan editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
