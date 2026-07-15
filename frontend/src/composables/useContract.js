@@ -19,8 +19,7 @@ const CONTRACT_ABI = [
   {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"penerbitAktif","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
   {"inputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"name":"publicIdToBatchId","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   {"inputs":[{"internalType":"uint256","name":"_batchId","type":"uint256"},{"internalType":"bytes32","name":"_merkleRoot","type":"bytes32"}],"name":"simpanRoot","outputs":[],"stateMutability":"nonpayable","type":"function"},
-  {"inputs":[{"internalType":"uint256","name":"_batchId","type":"uint256"},{"internalType":"bytes32","name":"_merkleRoot","type":"bytes32"},{"internalType":"bytes32","name":"_publicId","type":"bytes32"}],"name":"simpanRoot","outputs":[],"stateMutability":"nonpayable","type":"function"},
-  {"inputs":[{"internalType":"address","name":"_wallet","type":"address"}],"name":"tambahPenerbit","outputs":[],"stateMutability":"nonpayable","type":"function"}
+  {"inputs":[{"internalType":"uint256","name":"_batchId","type":"uint256"},{"internalType":"bytes32","name":"_merkleRoot","type":"bytes32"},{"internalType":"bytes32","name":"_publicId","type":"bytes32"}],"name":"simpanRoot","outputs":[],"stateMutability":"nonpayable","type":"function"}
 ]
 
 export function useContract() {
@@ -111,7 +110,7 @@ export function useContract() {
     }
   }
 
-  // 🔥🔥🔥 FUNGSI SIMPAN ROOT YANG DIPERBAIKI 🔥🔥🔥
+  // 🔥🔥🔥 FUNGSI SIMPAN ROOT YANG DIPERBAIKI DENGAN LOG LENGKAP 🔥🔥🔥
   const simpanRoot = async (batchId, merkleRoot, publicId) => {
     loading.value = true
     error.value = ''
@@ -124,23 +123,38 @@ export function useContract() {
         return false
       }
 
+      console.log('🔄 Memulai transaksi simpanRoot...')
+      console.log('📝 batchId:', batchId)
+      console.log('📝 merkleRoot:', merkleRoot)
+      console.log('📝 publicId (raw):', publicId)
+
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer)
 
-      // 🔥🔥🔥 KONVERSI UUID KE BYTES32 YANG BENAR 🔥🔥🔥
-      // 1. Hapus strip dari UUID -> 32 hex chars
-      const cleanPublicId = publicId.replace(/-/g, '')
-      // 2. Konversi hex ke bytes (16 bytes)
+      // 🔥 Konversi publicId ke bytes32
+      let cleanPublicId = publicId
+      if (cleanPublicId.includes('-')) {
+        cleanPublicId = cleanPublicId.replace(/-/g, '')
+      }
+      // Pastikan panjang hex string genap
+      if (cleanPublicId.length % 2 !== 0) {
+        cleanPublicId = '0' + cleanPublicId
+      }
       const publicIdBytes = ethers.getBytes('0x' + cleanPublicId)
-      // 3. Pad ke 32 bytes (karena panjangnya 16, padding aman)
       const publicIdBytes32 = ethers.zeroPadValue(publicIdBytes, 32)
 
-      console.log(`📝 Menyimpan root untuk batch ${batchId}: ${merkleRoot}`)
-      console.log(`🆔 Public ID (hex): ${cleanPublicId}`)
-      console.log(`🆔 Public ID (bytes32): ${publicIdBytes32}`)
+      console.log('🆔 Public ID (hex):', cleanPublicId)
+      console.log('🆔 Public ID (bytes32):', publicIdBytes32)
 
-      const tx = await contract['simpanRoot(uint256,bytes32,bytes32)'](batchId, merkleRoot, publicIdBytes32)
+      // Panggil fungsi kontrak dengan overload yang benar
+      const tx = await contract['simpanRoot(uint256,bytes32,bytes32)'](
+        batchId,
+        merkleRoot,
+        publicIdBytes32
+      )
+
+      console.log('⏳ Menunggu konfirmasi transaksi...')
       const receipt = await tx.wait()
 
       txHash.value = tx.hash
@@ -149,7 +163,7 @@ export function useContract() {
       return receipt.status === 1
 
     } catch (err) {
-      console.error('Error simpan root:', err)
+      console.error('❌ Error simpan root:', err)
       if (err.code === 'ACTION_REJECTED' || err.code === 4001) {
         error.value = 'Transaksi dibatalkan di MetaMask'
       } else if (err.message?.includes('insufficient funds')) {
