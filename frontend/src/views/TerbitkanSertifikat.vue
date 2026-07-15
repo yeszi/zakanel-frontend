@@ -247,6 +247,45 @@
           </form>
         </div>
       </div>
+
+      <!-- ============================================ -->
+      <!-- 🟢 MODAL QR CODE (TAMBAHAN BARU)              -->
+      <!-- ============================================ -->
+      <div v-if="showQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+        <div class="bg-white rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">📱 QR Code Sertifikat</h3>
+            <button @click="closeQRModal" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <div v-if="selectedQR" class="text-center">
+            <img :src="selectedQR.qr_code" alt="QR Code Sertifikat" class="mx-auto w-64 h-64" />
+            <p class="mt-2 text-sm text-gray-600 break-all">🔗 {{ selectedQR.verify_url }}</p>
+            <p class="text-xs text-gray-400 mt-1">Scan QR Code untuk verifikasi sertifikat</p>
+            
+            <!-- Jika ada banyak QR, tampilkan daftar -->
+            <div v-if="qrCodes.length > 1" class="mt-4 flex flex-wrap gap-2 justify-center">
+              <button 
+                v-for="(qr, idx) in qrCodes" 
+                :key="idx"
+                @click="selectedQR = qr"
+                class="px-3 py-1 text-xs rounded-full border"
+                :class="selectedQR === qr ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-100 border-gray-300'"
+              >
+                Sertifikat {{ idx + 1 }}
+              </button>
+            </div>
+          </div>
+
+          <div class="flex justify-end mt-4">
+            <button @click="closeQRModal" class="btn-secondary px-6 py-2">Tutup</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -289,7 +328,12 @@ const loadingLocation = ref(false)
 const locationStatus = ref(null)
 const publishResult = ref(null)
 
-// 🔥 COMPUTED UNTUK CEK KELENGKAPAN
+// 🔥 QR Code state (TAMBAHAN BARU)
+const qrCodes = ref([])              // Array untuk menyimpan QR Code
+const showQRModal = ref(false)       // Control modal QR
+const selectedQR = ref(null)         // QR yang sedang dilihat
+
+// Computed
 const isBatchComplete = computed(() => {
   if (batch.value.length === 0) return false
   return batch.value.every(item => 
@@ -310,7 +354,7 @@ const isItemComplete = (item) => {
          item.latitude && item.longitude && item.waktu_mulai && item.waktu_selesai
 }
 
-// 🔥 SIMPAN KE LOCALSTORAGE
+// LocalStorage
 const saveToLocalStorage = () => {
   try {
     localStorage.setItem('batch_data', JSON.stringify(batch.value))
@@ -320,7 +364,6 @@ const saveToLocalStorage = () => {
   }
 }
 
-// 🔥 LOAD DARI LOCALSTORAGE
 const loadFromLocalStorage = () => {
   try {
     const saved = localStorage.getItem('batch_data')
@@ -336,7 +379,6 @@ const loadFromLocalStorage = () => {
   }
 }
 
-// 🔥 WATCH: Setiap batch berubah, simpan ke localStorage
 watch(batch, () => {
   saveToLocalStorage()
 }, { deep: true })
@@ -448,7 +490,34 @@ const closeEditModal = () => {
 }
 
 // ============================================
-// TERBITKAN BATCH - SUDAH DIPERBAIKI!
+// 🔥 GENERATE QR CODE (FUNGSI BARU)
+// ============================================
+const generateQRForSertifikat = async (publicId, index) => {
+  try {
+    const response = await fetch(`/api/sertifikat/generate-qr/${publicId}`)
+    const data = await response.json()
+    
+    if (data.success) {
+      qrCodes.value[index] = {
+        public_id: publicId,
+        qr_code: data.qr_code,
+        verify_url: data.verify_url
+      }
+    } else {
+      console.error('Gagal generate QR:', data.error)
+    }
+  } catch (error) {
+    console.error('Error fetch QR:', error)
+  }
+}
+
+const closeQRModal = () => {
+  showQRModal.value = false
+  selectedQR.value = null
+}
+
+// ============================================
+// TERBITKAN BATCH (REVISI: TAMBAHKAN GENERATE QR)
 // ============================================
 const publishBatch = async () => {
   if (batch.value.length === 0) {
@@ -514,7 +583,7 @@ const publishBatch = async () => {
 
     console.log('🌳 Merkle Root dari backend:', merkleRoot)
 
-    // 🔥 STEP 4: Ambil public_id dari data pertama
+    // STEP 4: Ambil public_id dari data pertama
     const publicId = allData.length > 0 ? allData[0].public_id : null
     if (!publicId) {
       throw new Error('Public ID tidak ditemukan dari backend!')
@@ -522,13 +591,12 @@ const publishBatch = async () => {
 
     console.log('🆔 Public ID (UUID):', publicId)
 
-    // 🔥 STEP 5: Simpan ke Blockchain via MetaMask (GAS FEE!) dengan 3 parameter
+    // STEP 5: Simpan ke Blockchain via MetaMask
     publishResult.value = {
       success: true,
       message: '⏳ Menunggu konfirmasi transaksi di MetaMask...'
     }
 
-    // 🔥🔥🔥 PANGGIL simpanRoot DENGAN publicId (sudah di-handle di useContract) 🔥🔥🔥
     const txSuccess = await contract.simpanRoot(batchIdOnchain, merkleRoot, publicId)
     
     if (!txSuccess) {
@@ -551,6 +619,22 @@ const publishBatch = async () => {
     publishResult.value = {
       success: true,
       message: `✅ ${allData.length} sertifikat berhasil diterbitkan!\n🔗 TX: ${contract.txHash.value.slice(0, 10)}...`
+    }
+
+    // ============================================
+    // GENERATE QR CODE UNTUK SETIAP SERTIFIKAT
+    // ============================================
+    qrCodes.value = [] // Reset
+    for (let i = 0; i < allData.length; i++) {
+      const item = allData[i]
+      if (item.public_id) {
+        await generateQRForSertifikat(item.public_id, i)
+      }
+    }
+    // Tampilkan modal QR setelah semua selesai
+    if (qrCodes.value.length > 0) {
+      selectedQR.value = qrCodes.value[0]
+      showQRModal.value = true
     }
 
     // KOSONGKAN ANTREAN DAN LOCALSTORAGE

@@ -5,6 +5,10 @@ import json
 import hashlib
 import secrets
 import bcrypt
+import os  # ✅ TAMBAHKAN INI UNTUK MEMBACA .env
+import qrcode  # ✅ TAMBAHKAN UNTUK GENERATE QR CODE
+import io
+import base64
 
 # ============================================
 # CONTRACT ABI - KONTRAK BARU DENGAN PUBLIC_ID
@@ -251,7 +255,40 @@ def activate_penerbit(id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================
-# PREPARE SERTIFIKAT
+# GENERATE QR CODE (ENDPOINT BARU)
+# ============================================
+@sertifikat_bp.route('/sertifikat/generate-qr/<public_id>', methods=['GET'])
+def generate_qr(public_id):
+    """Generate QR Code dengan link publik dari environment variable"""
+    try:
+        base_url = os.getenv('VERIFICATION_BASE_URL', 'http://localhost:3000')
+        verify_url = f"{base_url}/verifikasi/valid?id={public_id}"
+        
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(verify_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+        
+        return jsonify({
+            'success': True,
+            'qr_code': f"data:image/png;base64,{img_base64}",
+            'verify_url': verify_url
+        })
+    except Exception as e:
+        print(f"❌ Error generate QR: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================
+# PREPARE SERTIFIKAT (REVISI: PAKAI .env UNTUK URL)
 # ============================================
 @sertifikat_bp.route('/sertifikat/prepare', methods=['POST'])
 def prepare_sertifikat():
@@ -289,6 +326,8 @@ def prepare_sertifikat():
             print(f"✅ Batch {batch_id} dibuat")
         except Exception as e:
             print(f"⚠️ Gagal insert batch: {e}")
+        # ✅ Ambil base URL dari .env untuk QR Code
+        base_url = os.getenv('VERIFICATION_BASE_URL', 'http://localhost:3000')
         results = []
         for cert_data in cert_list:
             public_id = secrets.token_hex(16)
@@ -309,7 +348,8 @@ def prepare_sertifikat():
                 'merkle_root': merkle_root,
                 'merkle_proof': '[]',
                 'tx_hash': None,
-                'verify_url': f"http://localhost:3000/verifikasi/valid?id={public_id}",
+                # ✅ 🔥 PERBAIKAN: Pakai base_url dari .env, bukan localhost
+                'verify_url': f"{base_url}/verifikasi/valid?id={public_id}",
                 'penerbit_id': int(penerbit_id),
                 'status': 'draft'
             }
