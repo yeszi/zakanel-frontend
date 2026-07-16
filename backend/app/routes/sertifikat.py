@@ -5,8 +5,8 @@ import json
 import hashlib
 import secrets
 import bcrypt
-import os  # ✅ TAMBAHKAN INI UNTUK MEMBACA .env
-import qrcode  # ✅ TAMBAHKAN UNTUK GENERATE QR CODE
+import os
+import qrcode
 import io
 import base64
 
@@ -84,7 +84,7 @@ def get_all_sertifikat():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================
-# VERIFY SERTIFIKAT - CEK KE BLOCKCHAIN
+# VERIFY SERTIFIKAT - CEK KE BLOCKCHAIN + SUPABASE
 # ============================================
 @sertifikat_bp.route('/sertifikat/verify/<public_id>', methods=['GET'])
 def verify_sertifikat(public_id):
@@ -92,23 +92,32 @@ def verify_sertifikat(public_id):
         w3 = current_app.w3
         contract_address = current_app.contract_address
         print(f"🔍 Verifikasi public_id: {public_id}")
+
         contract = w3.eth.contract(address=contract_address, abi=CONTRACT_ABI)
+
         public_id_clean = public_id.replace('-', '')
+        if len(public_id_clean) % 2 != 0:
+            public_id_clean = '0' + public_id_clean
         public_id_bytes = bytes.fromhex(public_id_clean)
         if len(public_id_bytes) < 32:
             public_id_bytes = public_id_bytes.rjust(32, b'\x00')
+
         batch_id = contract.functions.getBatchIdByPublicId(public_id_bytes).call()
         if batch_id == 0:
             return jsonify({
                 'valid': False,
                 'message': 'Sertifikat tidak ditemukan di blockchain'
             }), 200
+
         merkle_root = contract.functions.merkleRoots(batch_id).call()
         merkle_root = '0x' + merkle_root.hex()
+
         supabase = current_app.supabase
         db_response = supabase.table('sertifikat').select('*').eq('public_id', public_id).execute()
         cert_data = db_response.data[0] if db_response.data else {}
+
         print(f"✅ Sertifikat valid! Batch ID: {batch_id}")
+
         return jsonify({
             'valid': True,
             'public_id': public_id,
@@ -122,6 +131,7 @@ def verify_sertifikat(public_id):
             'created_at': cert_data.get('created_at'),
             'message': 'Sertifikat valid (diverifikasi dari blockchain)'
         })
+
     except Exception as e:
         print(f"❌ ERROR: {str(e)}")
         import traceback
@@ -255,15 +265,27 @@ def activate_penerbit(id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================
-# GENERATE QR CODE (ENDPOINT BARU)
+# GENERATE QR CODE (DENGAN DEBUG PRINT)
 # ============================================
 @sertifikat_bp.route('/sertifikat/generate-qr/<public_id>', methods=['GET'])
 def generate_qr(public_id):
     """Generate QR Code dengan link publik dari environment variable"""
     try:
+        # Ambil base URL dari environment variable
         base_url = os.getenv('VERIFICATION_BASE_URL', 'http://localhost:3000')
+        # Bersihkan trailing slash jika ada
+        if base_url.endswith('/'):
+            base_url = base_url[:-1]
         verify_url = f"{base_url}/verifikasi/valid?id={public_id}"
-        
+
+        # DEBUG: cetak ke terminal agar terlihat
+        print("=" * 50)
+        print(f"🔍 DEBUG generate_qr:")
+        print(f"   base_url   = {base_url}")
+        print(f"   public_id  = {public_id}")
+        print(f"   verify_url = {verify_url}")
+        print("=" * 50)
+
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -273,11 +295,11 @@ def generate_qr(public_id):
         qr.add_data(verify_url)
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white")
-        
+
         buffered = io.BytesIO()
         img.save(buffered, format="PNG")
         img_base64 = base64.b64encode(buffered.getvalue()).decode()
-        
+
         return jsonify({
             'success': True,
             'qr_code': f"data:image/png;base64,{img_base64}",
@@ -285,6 +307,8 @@ def generate_qr(public_id):
         })
     except Exception as e:
         print(f"❌ Error generate QR: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================
@@ -328,6 +352,9 @@ def prepare_sertifikat():
             print(f"⚠️ Gagal insert batch: {e}")
         # ✅ Ambil base URL dari .env untuk QR Code
         base_url = os.getenv('VERIFICATION_BASE_URL', 'http://localhost:3000')
+        if base_url.endswith('/'):
+            base_url = base_url[:-1]
+        print(f"🔍 DEBUG prepare: VERIFICATION_BASE_URL = {base_url}")
         results = []
         for cert_data in cert_list:
             public_id = secrets.token_hex(16)
@@ -348,7 +375,6 @@ def prepare_sertifikat():
                 'merkle_root': merkle_root,
                 'merkle_proof': '[]',
                 'tx_hash': None,
-                # ✅ 🔥 PERBAIKAN: Pakai base_url dari .env, bukan localhost
                 'verify_url': f"{base_url}/verifikasi/valid?id={public_id}",
                 'penerbit_id': int(penerbit_id),
                 'status': 'draft'

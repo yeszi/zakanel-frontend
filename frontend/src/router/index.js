@@ -1,57 +1,74 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import LoginView from '../views/LoginView.vue'
+import AdminDashboard from '../views/AdminDashboard.vue'
+import PublisherDashboard from '../views/PublisherDashboard.vue'
+import TambahPenerbit from '../views/TambahPenerbit.vue'
+import DataPenerbit from '../views/DataPenerbit.vue'
+import TerbitkanSertifikat from '../views/TerbitkanSertifikat.vue'
+import MonitoringData from '../views/MonitoringData.vue'
+import VerifikasiValid from '../views/VerifikasiValid.vue'
+import VerifikasiInvalid from '../views/VerifikasiInvalid.vue'
 
 const routes = [
   {
     path: '/',
     name: 'Login',
-    component: () => import('../views/LoginView.vue'),
-    meta: { guest: true }
+    component: LoginView,
+    meta: { requiresAuth: false }
   },
   {
     path: '/admin',
     name: 'AdminDashboard',
-    component: () => import('../views/AdminDashboard.vue'),
-    meta: { role: 'admin' }
-  },
-  {
-    path: '/admin/tambah-penerbit',
-    name: 'TambahPenerbit',
-    component: () => import('../views/TambahPenerbit.vue'),
-    meta: { role: 'admin' }
-  },
-  {
-    path: '/admin/data-penerbit',
-    name: 'DataPenerbit',
-    component: () => import('../views/DataPenerbit.vue'),
-    meta: { role: 'admin' }
+    component: AdminDashboard,
+    meta: { requiresAuth: true, role: 'admin' }
   },
   {
     path: '/publisher',
     name: 'PublisherDashboard',
-    component: () => import('../views/PublisherDashboard.vue'),
-    meta: { role: 'penerbit' }
+    component: PublisherDashboard,
+    meta: { requiresAuth: true, role: 'penerbit' }
+  },
+  {
+    path: '/admin/tambah-penerbit',
+    name: 'TambahPenerbit',
+    component: TambahPenerbit,
+    meta: { requiresAuth: true, role: 'admin' }
+  },
+  {
+    path: '/admin/data-penerbit',
+    name: 'DataPenerbit',
+    component: DataPenerbit,
+    meta: { requiresAuth: true, role: 'admin' }
   },
   {
     path: '/publisher/terbitkan',
     name: 'TerbitkanSertifikat',
-    component: () => import('../views/TerbitkanSertifikat.vue'),
-    meta: { role: 'penerbit' }
+    component: TerbitkanSertifikat,
+    meta: { requiresAuth: true, role: 'penerbit' }
   },
   {
     path: '/publisher/monitoring',
     name: 'MonitoringData',
-    component: () => import('../views/MonitoringData.vue'),
-    meta: { role: 'penerbit' }
+    component: MonitoringData,
+    meta: { requiresAuth: true, role: 'penerbit' }
   },
+  // ✅ RUTE VERIFIKASI (TANPA AUTH)
   {
     path: '/verifikasi/valid',
     name: 'VerifikasiValid',
-    component: () => import('../views/VerifikasiValid.vue')
+    component: VerifikasiValid,
+    meta: { requiresAuth: false }
   },
   {
     path: '/verifikasi/invalid',
     name: 'VerifikasiInvalid',
-    component: () => import('../views/VerifikasiInvalid.vue')
+    component: VerifikasiInvalid,
+    meta: { requiresAuth: false }
+  },
+  // Redirect jika path tidak ditemukan
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 
@@ -60,46 +77,36 @@ const router = createRouter({
   routes
 })
 
+// Navigation Guard (Cek Auth)
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
-  const userStr = localStorage.getItem('user')
-  let user = null
-  if (userStr) {
-    try {
-      user = JSON.parse(userStr)
-    } catch (e) {
-      user = null
-    }
-  }
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const requiresAuth = to.meta.requiresAuth
+  const requiredRole = to.meta.role
 
-  // Jika halaman guest (login) dan sudah login, redirect ke dashboard
-  if (to.meta.guest) {
-    if (token && user) {
-      if (user.role === 'admin') {
-        next('/admin')
-      } else if (user.role === 'penerbit') {
-        next('/publisher')
-      } else {
-        next('/')
-      }
-    } else {
-      next()
-    }
-    return
-  }
-
-  // Jika tidak ada token, redirect ke login
-  if (!token) {
+  // Jika halaman membutuhkan auth tapi tidak ada token
+  if (requiresAuth && !token) {
     next('/')
     return
   }
 
-  // Jika ada role yang dibutuhkan dan user tidak punya role yang sesuai
-  if (to.meta.role && user?.role !== to.meta.role) {
-    // Redirect ke dashboard masing-masing
-    if (user?.role === 'admin') {
+  // Jika halaman membutuhkan role tertentu
+  if (requiresAuth && requiredRole && user.role !== requiredRole) {
+    if (user.role === 'admin') {
       next('/admin')
-    } else if (user?.role === 'penerbit') {
+    } else if (user.role === 'penerbit') {
+      next('/publisher')
+    } else {
+      next('/')
+    }
+    return
+  }
+
+  // Jika sudah login dan mengakses halaman login, redirect ke dashboard sesuai role
+  if (to.path === '/' && token) {
+    if (user.role === 'admin') {
+      next('/admin')
+    } else if (user.role === 'penerbit') {
       next('/publisher')
     } else {
       next('/')
