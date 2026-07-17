@@ -121,29 +121,30 @@ const userNama = computed(() => {
   return authStore.user?.nama_lengkap || authStore.user?.username || 'Admin'
 })
 
-// 🔥 TOTAL SERTIFIKAT DARI API
-const totalSemua = computed(() => {
-  return certificates.value.length
-})
+const totalSemua = computed(() => certificates.value.length)
 
-// 🔥 SERTIFIKAT YANG SUDAH TERBIT (punya tx_hash)
 const totalTerbit = computed(() => {
   return certificates.value.filter(c => c.tx_hash).length
 })
 
-// 🔥 PENERBIT AKTIF DARI STORE
 const totalPenerbitAktif = computed(() => publisherStore.totalActive)
 
-// 🔥 AMBIL DATA SERTIFIKAT
+// 🔥 PERBAIKAN: tambahkan prefix /api
 const fetchCertificates = async () => {
   loading.value = true
   try {
-    const response = await api.get('/sertifikat')
+    console.log('[Admin] Fetching certificates from /api/sertifikat')
+    const response = await api.get('/api/sertifikat')
+    console.log('[Admin] Response:', response.data)
     certificates.value = response.data.sertifikat || []
+    if (certificates.value.length === 0) {
+      console.warn('[Admin] No certificates returned. Check if data exists and role is admin.')
+    }
   } catch (error) {
-    console.error('Gagal mengambil data sertifikat:', error)
+    console.error('[Admin] Gagal mengambil data sertifikat:', error)
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
 const logout = () => {

@@ -1,13 +1,13 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://prix-ide-aluminium-luis.trycloudflare.com',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://underwear-pentium-terms-attempts.trycloudflare.com',
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
-// 🔥 INTERCEPTOR REQUEST - KIRIM USER ID & ROLE
+// Interceptor untuk token dan header user
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   const userStr = localStorage.getItem('user')
@@ -25,17 +25,25 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
   
-  // 🔥 KIRIM user_id DAN role KE BACKEND
   if (user && user.id) {
     config.headers['X-User-ID'] = user.id
-    config.headers['X-User-Role'] = user.role || 'penerbit'
+    // Kirim role apa adanya, fallback ke 'penerbit' jika tidak ada
+    const role = user.role || 'penerbit'
+    config.headers['X-User-Role'] = role
+    console.log(`[API] Sending headers: X-User-ID=${user.id}, X-User-Role=${role}`)
+  } else {
+    console.warn('[API] No user data found in localStorage')
   }
   
+  console.log(`[API] Request to: ${config.baseURL}${config.url}`)
   return config
 })
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`[API] Response from ${response.config.url}:`, response.data)
+    return response
+  },
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token')

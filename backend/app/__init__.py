@@ -8,58 +8,57 @@ import os
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    CORS(app)
-    
-    # Supabase (pakai service_role key supaya bisa bypass RLS)
+
+    # 🔥 AKTIFKAN CORS – izinkan semua origin untuk development
+    CORS(app, resources={r"/*": {"origins": "*"}})
+
+    # === INISIALISASI KONEKSI ===
     supabase_url = app.config['SUPABASE_URL']
     supabase_key = app.config['SUPABASE_SERVICE_KEY']
     supabase = create_client(supabase_url, supabase_key)
-    
-    # Web3
+
     rpc_url = app.config['SEPOLIA_RPC_URL']
     w3 = Web3(Web3.HTTPProvider(rpc_url))
     contract_address = app.config['CONTRACT_ADDRESS']
-    
+
     # Simpan di app untuk dipakai di route lain
     app.supabase = supabase
     app.w3 = w3
     app.contract_address = contract_address
-    
-    # === REGISTER BLUEPRINTS ===
+
+    # === REGISTER BLUEPRINTS (DENGAN PREFIX) ===
     from app.routes.auth import auth_bp
-    from app.routes.sertifikat import sertifikat_bp 
-    
-    # 🔧 PERBAIKAN: tambahkan url_prefix='/auth' agar route login diakses via /auth/login
+    from app.routes.sertifikat import sertifikat_bp
+
+    # 🔥 PERBAIKAN PENTING: tambahkan url_prefix='/auth' untuk auth_bp
     app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(sertifikat_bp)  # jika sertifikat juga butuh prefix, tambahkan sesuai kebutuhan
-    
-    # === ROUTES ===
-    
+    app.register_blueprint(sertifikat_bp)  # untuk sertifikat, prefix sudah ada di blueprint-nya (/api)
+
+    # === ROUTES UMUM ===
     @app.route('/')
     def home():
         return {"message": "Certificate Verification API", "status": "running"}
-    
+
     @app.route('/health')
     def health():
         return {"status": "healthy"}
-    
+
     @app.route('/test-koneksi')
     def test_koneksi():
         hasil = {}
-        
         try:
             response = app.supabase.table("users").select("*").limit(1).execute()
             hasil["supabase"] = "terhubung"
         except Exception as e:
             hasil["supabase"] = f"gagal: {str(e)}"
-        
+
         try:
             hasil["blockchain_connected"] = app.w3.is_connected()
             hasil["contract_address"] = app.contract_address
             hasil["latest_block"] = app.w3.eth.block_number
         except Exception as e:
             hasil["blockchain"] = f"gagal: {str(e)}"
-        
+
         return jsonify(hasil)
-    
+
     return app

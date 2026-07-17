@@ -10,7 +10,7 @@ import qrcode
 import io
 import base64
 
-#contarct baru 
+# CONTRACT ABI
 CONTRACT_ABI = [
   {"inputs": [], "stateMutability": "nonpayable", "type": "constructor"},
   {"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "wallet", "type": "address"}], "name": "PenerbitDicabut", "type": "event"},
@@ -31,7 +31,7 @@ CONTRACT_ABI = [
 
 sertifikat_bp = Blueprint('sertifikat', __name__, url_prefix='/api')
 
-#ambil semua sertifikat
+# AMBIL SEMUA SERTIFIKAT
 @sertifikat_bp.route('/sertifikat', methods=['GET'])
 def get_all_sertifikat():
     try:
@@ -39,6 +39,7 @@ def get_all_sertifikat():
         user_id = request.headers.get('X-User-ID')
         user_role = request.headers.get('X-User-Role')
         print(f"🔍 Request dari user_id={user_id}, role={user_role}")
+
         if user_role == 'admin':
             response = supabase.table('sertifikat').select('*').order('created_at', desc=True).execute()
         else:
@@ -46,6 +47,7 @@ def get_all_sertifikat():
                 response = supabase.table('sertifikat').select('*').eq('penerbit_id', int(user_id)).order('created_at', desc=True).execute()
             else:
                 return jsonify({'success': True, 'sertifikat': []})
+
         result = []
         for s in response.data:
             merkle_root = s.get('merkle_root')
@@ -56,6 +58,7 @@ def get_all_sertifikat():
                         merkle_root = proof_data[0].get('root') if isinstance(proof_data[0], dict) else None
                 except:
                     merkle_root = None
+
             result.append({
                 'id': s.get('id'),
                 'public_id': s.get('public_id'),
@@ -74,14 +77,13 @@ def get_all_sertifikat():
                 'verify_url': s.get('verify_url'),
                 'created_at': s.get('created_at')
             })
+
         return jsonify({'success': True, 'sertifikat': result})
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ============================================
 # VERIFY SERTIFIKAT - CEK KE BLOCKCHAIN + SUPABASE
-# ============================================
 @sertifikat_bp.route('/sertifikat/verify/<public_id>', methods=['GET'])
 def verify_sertifikat(public_id):
     try:
@@ -134,9 +136,7 @@ def verify_sertifikat(public_id):
         traceback.print_exc()
         return jsonify({'valid': False, 'error': str(e)}), 200
 
-# ============================================
 # KONFIRMASI BATCH
-# ============================================
 @sertifikat_bp.route('/sertifikat/konfirmasi', methods=['POST'])
 def konfirmasi_batch():
     try:
@@ -145,12 +145,16 @@ def konfirmasi_batch():
         print("=" * 50)
         print("📝 KONFIRMASI BATCH:", data)
         print("=" * 50)
+
         merkle_root = data.get('merkle_root')
         tx_hash = data.get('tx_hash')
         batch_id_onchain = data.get('batch_id_onchain')
         sertifikat_list = data.get('sertifikat_list', [])
+
         if not sertifikat_list:
             return jsonify({'success': False, 'error': 'Tidak ada sertifikat'}), 400
+
+        # Update batch
         try:
             supabase.table('batch_sertifikat').update({
                 'merkle_root': merkle_root,
@@ -159,12 +163,15 @@ def konfirmasi_batch():
             print(f"✅ Batch {batch_id_onchain} diupdate")
         except Exception as e:
             print(f"⚠️ Gagal update batch: {e}")
+
+        # Update setiap sertifikat
         updated = []
         for cert in sertifikat_list:
             public_id = cert.get('public_id')
             if not public_id:
                 print(f"⚠️ Skip: tidak ada public_id untuk {cert}")
                 continue
+
             print(f"📝 Update sertifikat: {public_id}")
             update_data = {
                 'merkle_root': merkle_root,
@@ -179,6 +186,7 @@ def konfirmasi_batch():
                 print(f"✅ {public_id} berhasil diupdate")
             else:
                 print(f"❌ Gagal update {public_id}")
+
         return jsonify({
             'success': True,
             'message': f'{len(updated)} sertifikat dikonfirmasi di blockchain',
@@ -190,9 +198,7 @@ def konfirmasi_batch():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ============================================
 # KELOLA PENERBIT
-# ============================================
 @sertifikat_bp.route('/penerbit', methods=['GET'])
 def get_penerbit():
     try:
@@ -218,9 +224,11 @@ def add_penerbit():
         supabase = current_app.supabase
         if not data.get('username') or not data.get('password'):
             return jsonify({'success': False, 'error': 'Username dan password wajib diisi'}), 400
+
         check = supabase.table('users').select('*').eq('username', data['username']).execute()
         if check.data:
             return jsonify({'success': False, 'error': 'Username sudah digunakan'}), 400
+
         hashed = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         new_user = {
             'username': data['username'],
@@ -243,6 +251,7 @@ def revoke_penerbit(id):
         check = supabase.table('users').select('*').eq('id', id).eq('role', 'penerbit').execute()
         if not check.data:
             return jsonify({'success': False, 'error': 'Penerbit tidak ditemukan'}), 404
+
         supabase.table('users').update({'status': 'inactive', 'is_active': False}).eq('id', id).eq('role', 'penerbit').execute()
         return jsonify({'success': True, 'message': 'Hak penerbit berhasil dicabut'})
     except Exception as e:
@@ -255,26 +264,23 @@ def activate_penerbit(id):
         check = supabase.table('users').select('*').eq('id', id).eq('role', 'penerbit').execute()
         if not check.data:
             return jsonify({'success': False, 'error': 'Penerbit tidak ditemukan'}), 404
+
         supabase.table('users').update({'status': 'active', 'is_active': True}).eq('id', id).eq('role', 'penerbit').execute()
         return jsonify({'success': True, 'message': 'Penerbit diaktifkan kembali'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ============================================
-# GENERATE QR CODE (DENGAN DEBUG PRINT)
-# ============================================
+# GENERATE QR CODE
 @sertifikat_bp.route('/sertifikat/generate-qr/<public_id>', methods=['GET'])
 def generate_qr(public_id):
     """Generate QR Code dengan link publik dari environment variable"""
     try:
-        # Ambil base URL dari environment variable
-        base_url = os.getenv('VERIFICATION_BASE_URL', 'http://localhost:3000')
-        # Bersihkan trailing slash jika ada
+        # Ambil base URL dari environment, fallback ke URL Cloudflare Pages
+        base_url = os.getenv('VERIFICATION_BASE_URL', 'https://zakanel-frontend.pages.dev')
         if base_url.endswith('/'):
             base_url = base_url[:-1]
         verify_url = f"{base_url}/verifikasi/valid?id={public_id}"
 
-        # DEBUG: cetak ke terminal agar terlihat
         print("=" * 50)
         print(f"🔍 DEBUG generate_qr:")
         print(f"   base_url   = {base_url}")
@@ -307,9 +313,7 @@ def generate_qr(public_id):
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ============================================
-# PREPARE SERTIFIKAT (REVISI: PAKAI .env UNTUK URL)
-# ============================================
+# PREPARE SERTIFIKAT
 @sertifikat_bp.route('/sertifikat/prepare', methods=['POST'])
 def prepare_sertifikat():
     try:
@@ -318,12 +322,15 @@ def prepare_sertifikat():
         print("=" * 50)
         print("📝 REQUEST DATA:", data)
         print("=" * 50)
+
         penerbit_id = data.get('penerbit_id')
         if not penerbit_id:
             penerbit_id = request.headers.get('X-User-ID', 3)
+
         cert_list = data.get('sertifikat_list', [])
         if not cert_list:
             return jsonify({'success': False, 'error': 'Tidak ada data sertifikat'}), 400
+
         import hashlib
         import time
         hashes = []
@@ -332,10 +339,12 @@ def prepare_sertifikat():
             hash_val = hashlib.sha256(cert_string.encode()).hexdigest()
             hashes.append(hash_val)
             print(f"📝 Hash untuk {cert.get('nama_peserta')}: {hash_val}")
+
         combined = ''.join(hashes)
         merkle_root = hashlib.sha256(combined.encode()).hexdigest()
         merkle_root = '0x' + merkle_root
         print(f"🌳 Merkle Root: {merkle_root}")
+
         batch_id = int(time.time() * 1000)
         try:
             supabase.table('batch_sertifikat').insert({
@@ -346,16 +355,19 @@ def prepare_sertifikat():
             print(f"✅ Batch {batch_id} dibuat")
         except Exception as e:
             print(f"⚠️ Gagal insert batch: {e}")
-        # ✅ Ambil base URL dari .env untuk QR Code
-        base_url = os.getenv('VERIFICATION_BASE_URL', 'http://localhost:3000')
+
+        # ✅ Ambil base URL dari environment, fallback ke URL Cloudflare Pages
+        base_url = os.getenv('VERIFICATION_BASE_URL', 'https://zakanel-frontend.pages.dev')
         if base_url.endswith('/'):
             base_url = base_url[:-1]
         print(f"🔍 DEBUG prepare: VERIFICATION_BASE_URL = {base_url}")
+
         results = []
         for cert_data in cert_list:
             public_id = secrets.token_hex(16)
             cert_string = f"{cert_data.get('nama_peserta')}{cert_data.get('nama_kegiatan')}{cert_data.get('nama_lokasi')}{datetime.now()}"
             cert_hash = hashlib.sha256(cert_string.encode()).hexdigest()
+
             new_cert = {
                 'public_id': public_id,
                 'batch_id': batch_id,
@@ -375,10 +387,12 @@ def prepare_sertifikat():
                 'penerbit_id': int(penerbit_id),
                 'status': 'draft'
             }
+
             response = supabase.table('sertifikat').insert(new_cert).execute()
             if response.data:
                 results.append(response.data[0])
                 print(f"✅ {new_cert['nama_peserta']} disimpan dengan public_id: {public_id}")
+
         return jsonify({
             'success': True,
             'count': len(results),
@@ -392,9 +406,7 @@ def prepare_sertifikat():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ============================================
 # GET DRAFT SERTIFIKAT
-# ============================================
 @sertifikat_bp.route('/sertifikat/draft', methods=['GET'])
 def get_draft_sertifikat():
     try:
@@ -402,7 +414,9 @@ def get_draft_sertifikat():
         user_id = request.headers.get('X-User-ID')
         if not user_id:
             return jsonify({'success': True, 'sertifikat': []})
+
         response = supabase.table('sertifikat').select('*').eq('penerbit_id', int(user_id)).eq('status', 'draft').order('created_at', desc=True).execute()
+
         result = []
         for s in response.data:
             result.append({
@@ -420,6 +434,7 @@ def get_draft_sertifikat():
                 'created_at': s.get('created_at'),
                 'status': s.get('status')
             })
+
         return jsonify({'success': True, 'sertifikat': result})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

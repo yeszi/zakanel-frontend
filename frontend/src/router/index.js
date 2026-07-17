@@ -52,7 +52,7 @@ const routes = [
     component: MonitoringData,
     meta: { requiresAuth: true, role: 'penerbit' }
   },
-  // ✅ RUTE VERIFIKASI (TANPA AUTH)
+
   {
     path: '/verifikasi/valid',
     name: 'VerifikasiValid',
