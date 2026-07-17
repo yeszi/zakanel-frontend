@@ -10,8 +10,6 @@ def create_app():
     app.config.from_object(Config)
     CORS(app)
     
-    # === INISIALISASI KONEKSI ===
-    
     # Supabase (pakai service_role key supaya bisa bypass RLS)
     supabase_url = app.config['SUPABASE_URL']
     supabase_key = app.config['SUPABASE_SERVICE_KEY']
@@ -30,8 +28,10 @@ def create_app():
     # === REGISTER BLUEPRINTS ===
     from app.routes.auth import auth_bp
     from app.routes.sertifikat import sertifikat_bp 
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(sertifikat_bp)
+    
+    # 🔧 PERBAIKAN: tambahkan url_prefix='/auth' agar route login diakses via /auth/login
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(sertifikat_bp)  # jika sertifikat juga butuh prefix, tambahkan sesuai kebutuhan
     
     # === ROUTES ===
     

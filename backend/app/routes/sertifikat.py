@@ -10,9 +10,7 @@ import qrcode
 import io
 import base64
 
-# ============================================
-# CONTRACT ABI - KONTRAK BARU DENGAN PUBLIC_ID
-# ============================================
+#contarct baru 
 CONTRACT_ABI = [
   {"inputs": [], "stateMutability": "nonpayable", "type": "constructor"},
   {"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "wallet", "type": "address"}], "name": "PenerbitDicabut", "type": "event"},
@@ -33,9 +31,7 @@ CONTRACT_ABI = [
 
 sertifikat_bp = Blueprint('sertifikat', __name__, url_prefix='/api')
 
-# ============================================
-# GET ALL SERTIFIKAT
-# ============================================
+#ambil semua sertifikat
 @sertifikat_bp.route('/sertifikat', methods=['GET'])
 def get_all_sertifikat():
     try:

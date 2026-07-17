@@ -145,7 +145,7 @@ export const usePublisherStore = defineStore('publisher', () => {
   try {
     // Hapus is_active dari data yang dikirim
     const sendData = { ...data }
-    delete sendData.is_active  // ← Tambahkan ini!
+    delete sendData.is_active  
     
     const response = await api.post('/penerbit', sendData)
     await refreshData()

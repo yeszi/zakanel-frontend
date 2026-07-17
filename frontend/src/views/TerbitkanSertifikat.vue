@@ -248,9 +248,7 @@
         </div>
       </div>
 
-      <!-- ============================================ -->
       <!-- 🟢 MODAL QR CODE (TAMBAHAN BARU)              -->
-      <!-- ============================================ -->
       <div v-if="showQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
         <div class="bg-white rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
           <div class="flex items-center justify-between mb-4">
@@ -328,10 +326,9 @@ const loadingLocation = ref(false)
 const locationStatus = ref(null)
 const publishResult = ref(null)
 
-// 🔥 QR Code state (TAMBAHAN BARU)
-const qrCodes = ref([])              // Array untuk menyimpan QR Code
-const showQRModal = ref(false)       // Control modal QR
-const selectedQR = ref(null)         // QR yang sedang dilihat
+const qrCodes = ref([])              
+const showQRModal = ref(false)       
+const selectedQR = ref(null)         
 
 // Computed
 const isBatchComplete = computed(() => {
@@ -396,9 +393,7 @@ const editForm = reactive({
   keterangan: ''
 })
 
-// ============================================
 // AMBIL LOKASI GPS
-// ============================================
 const getCurrentLocation = () => {
   if (!navigator.geolocation) {
     locationStatus.value = { type: 'error', message: '❌ Browser tidak mendukung geolokasi' }
@@ -424,9 +419,7 @@ const getCurrentLocation = () => {
   )
 }
 
-// ============================================
 // FUNGSI BATCH
-// ============================================
 const addToBatch = () => {
   console.log('📝 Menambahkan ke batch...', form)
 
@@ -466,9 +459,7 @@ const removeFromBatch = (index) => {
   }
 }
 
-// ============================================
 // FUNGSI EDIT
-// ============================================
 const editBatch = (index) => {
   const item = batch.value[index]
   editModal.value.show = true
@@ -489,9 +480,7 @@ const closeEditModal = () => {
   editModal.value.index = null
 }
 
-// ============================================
 // 🔥 GENERATE QR CODE (FUNGSI BARU)
-// ============================================
 const generateQRForSertifikat = async (publicId, index) => {
   try {
     const response = await fetch(`/api/sertifikat/generate-qr/${publicId}`)
@@ -515,10 +504,7 @@ const closeQRModal = () => {
   showQRModal.value = false
   selectedQR.value = null
 }
-
-// ============================================
 // TERBITKAN BATCH (REVISI: TAMBAHKAN GENERATE QR)
-// ============================================
 const publishBatch = async () => {
   if (batch.value.length === 0) {
     alert('❌ Antrean kosong!')
@@ -621,9 +607,7 @@ const publishBatch = async () => {
       message: `✅ ${allData.length} sertifikat berhasil diterbitkan!\n🔗 TX: ${contract.txHash.value.slice(0, 10)}...`
     }
 
-    // ============================================
     // GENERATE QR CODE UNTUK SETIAP SERTIFIKAT
-    // ============================================
     qrCodes.value = [] // Reset
     for (let i = 0; i < allData.length; i++) {
       const item = allData[i]
@@ -663,17 +647,13 @@ const publishBatch = async () => {
   publishing.value = false
 }
 
-// ============================================
 // LOGOUT
-// ============================================
 const logout = () => {
   authStore.logout()
   router.push('/')
 }
 
-// ============================================
 // MOUNTED - LOAD DARI LOCALSTORAGE
-// ============================================
 onMounted(() => {
   loadFromLocalStorage()
 })
