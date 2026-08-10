@@ -1,20 +1,20 @@
 <template>
   <div class="min-h-screen bg-gray-50 flex">
+    <!-- Sidebar -->
     <div class="w-64 bg-white border-r border-gray-200 p-4 min-h-screen flex flex-col">
       <h1 class="text-lg font-bold text-blue-700">MENU</h1>
       <p class="text-xs text-gray-400 mt-1">Penerbit</p>
       <nav class="mt-8 space-y-2 flex-1">
-        <router-link to="/publisher" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">Dashboard</router-link>
+        <router-link to="/publisher" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Dashboard</router-link>
         <router-link to="/publisher/terbitkan" class="block px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium">(+) Terbitkan Sertifikat</router-link>
-        <router-link to="/publisher/monitoring" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">(=) Monitoring Data</router-link>
+        <router-link to="/publisher/monitoring" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">(=) Monitoring Data</router-link>
       </nav>
-      <button @click="logout" class="block w-full text-left px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors">Logout</button>
+      <button @click="logout" class="block w-full text-left px-3 py-2 rounded-lg text-red-600 hover:bg-red-50">Logout</button>
     </div>
-    
+
+    <!-- Content -->
     <div class="flex-1 p-8">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">Terbitkan Sertifikat</h1>
-      </div>
+      <h1 class="text-2xl font-bold text-gray-800 mb-6">Terbitkan Sertifikat</h1>
 
       <!-- Status MetaMask -->
       <div class="mb-6 p-4 rounded-lg border" :class="isConnected ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'">
@@ -97,9 +97,8 @@
                     <p class="text-xs text-gray-500">{{ item.nama_kegiatan }} · {{ item.nama_lokasi }}</p>
                   </div>
                   <div class="flex space-x-2">
-                    <!-- 🔥 TOMBOL EDIT -->
-                    <button @click="editBatch(index)" class="text-blue-600 hover:text-blue-800 text-sm font-medium">✏️ edit</button>
-                    <!-- 🔥 TOMBOL HAPUS -->
+                    <!-- 🔥 Tombol Edit – buka modal -->
+                    <button @click="openEditModal(index)" class="text-blue-600 hover:text-blue-800 text-sm font-medium">✏️ edit</button>
                     <button @click="removeFromBatch(index)" class="text-red-500 hover:text-red-700 text-sm font-medium">🗑 hapus</button>
                   </div>
                 </div>
@@ -112,20 +111,78 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Modal QR Code -->
-      <div v-if="showQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-        <div class="bg-white rounded-xl p-6 max-w-lg w-full">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">📱 QR Code</h3>
-            <button @click="closeQRModal" class="text-gray-400">X</button>
-          </div>
-          <div v-if="selectedQR" class="text-center">
-            <img :src="selectedQR.qr_code" alt="QR" class="mx-auto w-64 h-64" />
-            <p class="mt-2 text-sm text-gray-600 break-all">🔗 {{ selectedQR.verify_url }}</p>
-          </div>
-          <button @click="closeQRModal" class="btn-secondary px-6 py-2 w-full mt-4">Tutup</button>
+    <!-- 🔥 MODAL EDIT (POP-UP) -->
+    <div v-if="editModal.show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">✏️ Edit Data Sertifikat</h3>
+          <button @click="closeEditModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
         </div>
+
+        <form @submit.prevent="saveEdit" class="space-y-4">
+          <div>
+            <label class="form-label">Nama Kegiatan</label>
+            <input v-model="editForm.nama_kegiatan" type="text" class="form-input w-full" required />
+          </div>
+          <div>
+            <label class="form-label">Nama Lokasi</label>
+            <input v-model="editForm.nama_lokasi" type="text" class="form-input w-full" required />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="form-label">Latitude</label>
+              <input v-model="editForm.latitude" type="number" step="0.0000001" class="form-input w-full" required />
+            </div>
+            <div>
+              <label class="form-label">Longitude</label>
+              <input v-model="editForm.longitude" type="number" step="0.0000001" class="form-input w-full" required />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="form-label">Waktu Mulai</label>
+              <input v-model="editForm.waktu_mulai" type="datetime-local" class="form-input w-full" required />
+            </div>
+            <div>
+              <label class="form-label">Waktu Selesai</label>
+              <input v-model="editForm.waktu_selesai" type="datetime-local" class="form-input w-full" required />
+            </div>
+          </div>
+          <div>
+            <label class="form-label">Nama Lengkap Peserta</label>
+            <input v-model="editForm.nama_peserta" type="text" class="form-input w-full" required />
+          </div>
+          <div>
+            <label class="form-label">Keterangan Tambahan</label>
+            <textarea v-model="editForm.keterangan" rows="2" class="form-input w-full"></textarea>
+          </div>
+
+          <div class="flex space-x-3 pt-4">
+            <button type="button" @click="closeEditModal" class="flex-1 btn-secondary py-2">Batal</button>
+            <button type="submit" class="flex-1 btn-primary py-2">Simpan Perubahan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal QR Code -->
+    <div v-if="showQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+      <div class="bg-white rounded-xl p-6 max-w-lg w-full">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">📱 QR Code</h3>
+          <button @click="closeQRModal" class="text-gray-400">X</button>
+        </div>
+        <div v-if="selectedQR" class="text-center">
+          <img :src="selectedQR.qr_code" alt="QR" class="mx-auto w-64 h-64" />
+          <p class="mt-2 text-sm text-gray-600 break-all">🔗 {{ selectedQR.verify_url }}</p>
+        </div>
+        <button @click="closeQRModal" class="btn-secondary px-6 py-2 w-full mt-4">Tutup</button>
       </div>
     </div>
   </div>
@@ -146,15 +203,29 @@ const isConnected = contract.isConnected
 const walletAddress = contract.walletAddress
 const connectWallet = async () => await contract.connectWallet()
 
-const form = reactive({ 
-  nama_kegiatan: '', 
-  nama_lokasi: '', 
-  latitude: '', 
-  longitude: '', 
-  waktu_mulai: '', 
-  waktu_selesai: '', 
-  nama_peserta: '', 
-  keterangan: '' 
+// Form utama (untuk tambah baru)
+const form = reactive({
+  nama_kegiatan: '',
+  nama_lokasi: '',
+  latitude: '',
+  longitude: '',
+  waktu_mulai: '',
+  waktu_selesai: '',
+  nama_peserta: '',
+  keterangan: ''
+})
+
+// Modal Edit
+const editModal = ref({ show: false, index: null })
+const editForm = reactive({
+  nama_kegiatan: '',
+  nama_lokasi: '',
+  latitude: '',
+  longitude: '',
+  waktu_mulai: '',
+  waktu_selesai: '',
+  nama_peserta: '',
+  keterangan: ''
 })
 
 const batch = ref([])
@@ -162,9 +233,9 @@ const loading = ref(false)
 const publishing = ref(false)
 const loadingLocation = ref(false)
 
-const qrCodes = ref([])              
-const showQRModal = ref(false)       
-const selectedQR = ref(null)         
+const qrCodes = ref([])
+const showQRModal = ref(false)
+const selectedQR = ref(null)
 
 // LocalStorage
 const saveToLocalStorage = () => {
@@ -181,12 +252,12 @@ watch(batch, saveToLocalStorage, { deep: true })
 const getCurrentLocation = () => {
   loadingLocation.value = true
   navigator.geolocation.getCurrentPosition(
-    (pos) => { 
+    (pos) => {
       form.latitude = pos.coords.latitude.toFixed(7)
       form.longitude = pos.coords.longitude.toFixed(7)
       loadingLocation.value = false
     },
-    (err) => { 
+    (err) => {
       loadingLocation.value = false
       alert('Gagal ambil lokasi: ' + err.message)
     },
@@ -194,23 +265,36 @@ const getCurrentLocation = () => {
   )
 }
 
-// 🔥 FUNGSI EDIT
-const editBatch = (index) => {
+// 🔥 BUKA MODAL EDIT
+const openEditModal = (index) => {
   const item = batch.value[index]
-  form.nama_kegiatan = item.nama_kegiatan || ''
-  form.nama_lokasi = item.nama_lokasi || ''
-  form.latitude = item.latitude || ''
-  form.longitude = item.longitude || ''
-  form.waktu_mulai = item.waktu_mulai || ''
-  form.waktu_selesai = item.waktu_selesai || ''
-  form.nama_peserta = item.nama_peserta || ''
-  form.keterangan = item.keterangan || ''
-  // Hapus dari antrean setelah diambil
-  batch.value.splice(index, 1)
+  editForm.nama_kegiatan = item.nama_kegiatan || ''
+  editForm.nama_lokasi = item.nama_lokasi || ''
+  editForm.latitude = item.latitude || ''
+  editForm.longitude = item.longitude || ''
+  editForm.waktu_mulai = item.waktu_mulai || ''
+  editForm.waktu_selesai = item.waktu_selesai || ''
+  editForm.nama_peserta = item.nama_peserta || ''
+  editForm.keterangan = item.keterangan || ''
+  editModal.value.show = true
+  editModal.value.index = index
 }
 
+// 🔥 SIMPAN EDIT
+const saveEdit = () => {
+  const index = editModal.value.index
+  batch.value[index] = { ...editForm }
+  closeEditModal()
+}
+
+// 🔥 TUTUP MODAL
+const closeEditModal = () => {
+  editModal.value.show = false
+  editModal.value.index = null
+}
+
+// 🔥 FUNGSI TAMBAH KE BATCH
 const addToBatch = () => {
-  // Validasi
   if (!form.nama_peserta) { alert('❌ Nama peserta wajib diisi!'); return }
   if (!form.nama_kegiatan) { alert('❌ Nama kegiatan wajib diisi!'); return }
   if (!form.nama_lokasi) { alert('❌ Nama lokasi wajib diisi!'); return }
@@ -219,20 +303,18 @@ const addToBatch = () => {
   if (!form.waktu_mulai) { alert('❌ Waktu mulai wajib diisi!'); return }
   if (!form.waktu_selesai) { alert('❌ Waktu selesai wajib diisi!'); return }
 
-  // Cek duplikat
   const isDuplicate = batch.value.some(item => item.nama_peserta === form.nama_peserta)
   if (isDuplicate) {
     alert(`⚠️ Data untuk "${form.nama_peserta}" sudah ada di antrean!`)
     return
   }
 
-  batch.value.push({ 
+  batch.value.push({
     ...form,
     latitude: parseFloat(form.latitude),
     longitude: parseFloat(form.longitude)
   })
-  
-  // Reset form
+
   form.nama_kegiatan = ''
   form.nama_lokasi = ''
   form.latitude = ''
@@ -242,7 +324,6 @@ const addToBatch = () => {
   form.nama_peserta = ''
 }
 
-// 🔥 FUNGSI HAPUS
 const removeFromBatch = (idx) => {
   if (confirm(`Hapus data "${batch.value[idx].nama_peserta}" dari antrean?`)) {
     batch.value.splice(idx, 1)
@@ -253,18 +334,18 @@ const generateQRForSertifikat = async (publicId, index) => {
   try {
     const response = await api.get(`/sertifikat/generate-qr/${publicId}`)
     if (response.data.success) {
-      qrCodes.value[index] = { 
-        public_id: publicId, 
-        qr_code: response.data.qr_code, 
-        verify_url: response.data.verify_url 
+      qrCodes.value[index] = {
+        public_id: publicId,
+        qr_code: response.data.qr_code,
+        verify_url: response.data.verify_url
       }
     }
-  } catch (error) { 
-    console.error('Error QR:', error) 
+  } catch (error) {
+    console.error('Error QR:', error)
   }
 }
 
-const closeQRModal = () => { 
+const closeQRModal = () => {
   showQRModal.value = false
   selectedQR.value = null
 }
@@ -293,20 +374,12 @@ const publishBatch = async () => {
 
   try {
     const penerbitId = authStore.user?.id
-    if (!penerbitId) {
-      throw new Error('ID penerbit tidak ditemukan!')
-    }
+    if (!penerbitId) throw new Error('ID penerbit tidak ditemukan!')
 
-    console.log('📤 Menerbitkan batch dengan penerbit_id:', penerbitId)
-    console.log('📤 Data batch:', batch.value)
-
-    // STEP 1: Prepare ke backend
-    const prepareRes = await api.post('/sertifikat/prepare', { 
-      sertifikat_list: batch.value, 
-      penerbit_id: penerbitId 
+    const prepareRes = await api.post('/sertifikat/prepare', {
+      sertifikat_list: batch.value,
+      penerbit_id: penerbitId
     })
-
-    console.log('✅ Prepare response:', prepareRes.data)
 
     if (!prepareRes.data.success) {
       throw new Error(prepareRes.data.error || 'Gagal prepare sertifikat')
@@ -322,13 +395,11 @@ const publishBatch = async () => {
 
     const publicId = allData[0].public_id
 
-    // STEP 2: Simpan ke Blockchain via MetaMask
     const txSuccess = await contract.simpanRoot(batchIdOnchain, merkleRoot, publicId)
     if (!txSuccess) {
       throw new Error('Gagal simpan root di blockchain: ' + contract.error.value)
     }
 
-    // STEP 3: Konfirmasi ke backend
     await api.post('/sertifikat/konfirmasi', {
       merkle_root: merkleRoot,
       tx_hash: contract.txHash.value,
@@ -336,18 +407,16 @@ const publishBatch = async () => {
       sertifikat_list: allData.map(i => ({ public_id: i.public_id, proof: [] }))
     })
 
-    // STEP 4: Generate QR Code
     qrCodes.value = []
     for (let i = 0; i < allData.length; i++) {
       await generateQRForSertifikat(allData[i].public_id, i)
     }
-    
+
     if (qrCodes.value.length > 0) {
       selectedQR.value = qrCodes.value[0]
       showQRModal.value = true
     }
 
-    // STEP 5: Kosongkan antrean
     batch.value = []
     localStorage.removeItem('batch_data')
 
@@ -355,25 +424,19 @@ const publishBatch = async () => {
 
   } catch (error) {
     console.error('❌ Error:', error)
-    
     let errorMessage = error.message || 'Terjadi kesalahan'
-    if (error.response?.data?.error) {
-      errorMessage = error.response.data.error
-    } else if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
-      errorMessage = 'Transaksi dibatalkan di MetaMask'
-    } else if (error.message?.includes('insufficient funds')) {
-      errorMessage = 'Saldo ETH tidak cukup untuk gas fee!'
-    }
-    
+    if (error.response?.data?.error) errorMessage = error.response.data.error
+    else if (error.code === 'ACTION_REJECTED' || error.code === 4001) errorMessage = 'Transaksi dibatalkan di MetaMask'
+    else if (error.message?.includes('insufficient funds')) errorMessage = 'Saldo ETH tidak cukup untuk gas fee!'
     alert('❌ Gagal: ' + errorMessage)
   }
 
   publishing.value = false
 }
 
-const logout = () => { 
+const logout = () => {
   authStore.logout()
-  router.push('/') 
+  router.push('/')
 }
 
 onMounted(loadFromLocalStorage)
