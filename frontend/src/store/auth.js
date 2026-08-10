@@ -8,51 +8,60 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
   const error = ref(null)
 
-  // Login
   const login = async (username, password) => {
     loading.value = true
     error.value = null
-    
+
     try {
       const response = await api.post('/auth/login', { username, password })
-      
-      // CEK status aktif
+
+      // Jaga-jaga jika backend tidak mengembalikan field "user" seperti yang diharapkan
+      if (!response.data || !response.data.user) {
+        console.error('[login] Response tidak sesuai format yang diharapkan:', response.data)
+        return { success: false, message: 'Format respons server tidak dikenali. Cek console/network tab.' }
+      }
+
       if (response.data.user.status === 'inactive' || response.data.user.status === 'revoked' || response.data.user.is_active === false) {
-        return { 
-          success: false, 
-          message: '⚠️ Akun Anda telah dinonaktifkan oleh admin. Hubungi admin untuk informasi lebih lanjut.' 
-        }
+        return { success: false, message: '⚠️ Akun dinonaktifkan oleh admin.' }
       }
-      
+
       const userData = response.data.user
-      // Pastikan ada role
-      if (!userData.role) {
-        console.warn('[Auth] User role tidak ditemukan, set default "penerbit"')
-        userData.role = 'penerbit'
-      }
-      
+      if (!userData.role) userData.role = 'penerbit'
+
       user.value = userData
       token.value = response.data.token
-      
+
       localStorage.setItem('token', response.data.token)
       localStorage.setItem('user', JSON.stringify(userData))
-      
-      console.log('[Auth] Login success, user:', userData)
-      
       return { success: true, user: userData }
     } catch (err) {
-      if (err.response?.status === 403) {
-        error.value = err.response?.data?.message || 'Akun Anda telah dinonaktifkan!'
+      // 🔍 Log detail lengkap ke console supaya penyebab asli terlihat, bukan tertelan jadi pesan generik
+      console.error('[login] Gagal login. Detail error:', {
+        message: err.message,
+        code: err.code,
+        status: err.response?.status,
+        responseData: err.response?.data,
+        requestURL: err.config ? `${err.config.baseURL}${err.config.url}` : undefined
+      })
+
+      let message
+      if (err.code === 'ERR_NETWORK' || !err.response) {
+        message = `Tidak bisa terhubung ke server (${err.config?.baseURL || 'baseURL tidak diketahui'}). Cek apakah backend menyala dan VITE_API_BASE_URL sudah benar.`
+      } else if (err.code === 'ECONNABORTED') {
+        message = 'Server tidak merespons (timeout). Backend mungkin sedang down atau lambat.'
+      } else if (err.response?.status === 404) {
+        message = 'Endpoint /api/auth/login tidak ditemukan (404). Cek apakah backend route-nya sesuai.'
       } else {
-        error.value = err.response?.data?.message || 'Login gagal'
+        message = err.response?.data?.message || err.response?.data?.error || `Login gagal (status ${err.response?.status})`
       }
-      return { success: false, message: error.value }
+
+      error.value = message
+      return { success: false, message }
     } finally {
       loading.value = false
     }
   }
 
-  // Logout
   const logout = () => {
     user.value = null
     token.value = null
@@ -60,51 +69,31 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('user')
   }
 
-  // Init Auth
   const initAuth = () => {
     const savedToken = localStorage.getItem('token')
     const savedUser = localStorage.getItem('user')
-    
     if (savedToken && savedUser) {
       token.value = savedToken
       user.value = JSON.parse(savedUser)
-      console.log('[Auth] Init from localStorage, user:', user.value)
     }
   }
 
   const isAdmin = computed(() => user.value?.role === 'admin')
   const isPenerbit = computed(() => user.value?.role === 'penerbit')
 
-  return {
-    user,
-    token,
-    loading,
-    error,
-    login,
-    logout,
-    initAuth,
-    isAdmin,
-    isPenerbit
-  }
+  return { user, token, loading, error, login, logout, initAuth, isAdmin, isPenerbit }
 })
 
-// ============================================
-// PUBLISHER STORE
-// ============================================
 export const usePublisherStore = defineStore('publisher', () => {
   const publishers = ref([])
   const loading = ref(false)
 
-  // Ambil semua penerbit dari backend
   const refreshData = async () => {
     loading.value = true
     try {
-      // 🔥 PERBAIKAN: tambahkan prefix /api
-      const response = await api.get('/api/penerbit')
+      const response = await api.get('/penerbit')
       publishers.value = response.data.penerbit || []
-      console.log('[PublisherStore] Loaded publishers:', publishers.value)
     } catch (error) {
-      console.error('Gagal load penerbit:', error)
       publishers.value = []
     } finally {
       loading.value = false
@@ -112,57 +101,35 @@ export const usePublisherStore = defineStore('publisher', () => {
   }
 
   const allPublishers = computed(() => publishers.value)
-
-  const totalActive = computed(() => {
-    return publishers.value.filter(p => p.status === 'active' || p.is_active === true).length
-  })
+  const totalActive = computed(() => publishers.value.filter(p => p.status === 'active' || p.is_active === true).length)
 
   const revokePublisher = async (id) => {
     try {
-      await api.post(`/api/penerbit/${id}/revoke`)
+      await api.post(`/penerbit/${id}/revoke`)
       await refreshData()
       return true
-    } catch (error) {
-      console.error('Gagal revoke:', error)
-      return false
-    }
+    } catch (error) { return false }
   }
 
   const activatePublisher = async (id) => {
     try {
-      await api.post(`/api/penerbit/${id}/activate`)
+      await api.post(`/penerbit/${id}/activate`)
       await refreshData()
       return true
-    } catch (error) {
-      console.error('Gagal activate:', error)
-      return false
-    }
+    } catch (error) { return false }
   }
 
   const addPublisher = async (data) => {
     try {
       const sendData = { ...data }
       delete sendData.is_active  
-      
-      const response = await api.post('/api/penerbit', sendData)
+      const response = await api.post('/penerbit', sendData)
       await refreshData()
       return { success: true, data: response.data }
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response?.data?.error || 'Gagal tambah penerbit' 
-      }
+      return { success: false, message: error.response?.data?.error || 'Gagal tambah penerbit' }
     }
   }
 
-  return {
-    publishers,
-    allPublishers,
-    totalActive,
-    loading,
-    refreshData,
-    revokePublisher,
-    activatePublisher,
-    addPublisher
-  }
+  return { publishers, allPublishers, totalActive, loading, refreshData, revokePublisher, activatePublisher, addPublisher }
 })

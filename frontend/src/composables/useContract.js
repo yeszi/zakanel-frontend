@@ -2,7 +2,8 @@
 import { ref } from 'vue'
 import { ethers } from 'ethers'
 
-const CONTRACT_ADDRESS = '0xB6ef2Cb1b0740d5082786B5d37196c1609714B78'
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '0xB6ef2Cb1b0740d5082786B5d37196c1609714B78'
+const RPC_URL = import.meta.env.VITE_RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com'
 
 const CONTRACT_ABI = [
   {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},

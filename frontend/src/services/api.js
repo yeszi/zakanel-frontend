@@ -1,56 +1,55 @@
 import axios from 'axios'
 
+let baseURL = import.meta.env.VITE_API_BASE_URL || 'https://buried-positive-alternative-weblog.trycloudflare.com'
+
+if (baseURL.endsWith('/')) {
+  baseURL = baseURL.slice(0, -1)
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://underwear-pentium-terms-attempts.trycloudflare.com',
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  baseURL: baseURL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
 })
 
-// Interceptor untuk token dan header user
+// Interceptor Request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   const userStr = localStorage.getItem('user')
   let user = null
-  
+
   if (userStr) {
-    try {
-      user = JSON.parse(userStr)
-    } catch (e) {
-      console.error('Error parsing user:', e)
-    }
+    try { user = JSON.parse(userStr) } catch (e) {}
   }
-  
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  
+
+  if (token) config.headers.Authorization = `Bearer ${token}`
+
   if (user && user.id) {
     config.headers['X-User-ID'] = user.id
-    // Kirim role apa adanya, fallback ke 'penerbit' jika tidak ada
-    const role = user.role || 'penerbit'
-    config.headers['X-User-Role'] = role
-    console.log(`[API] Sending headers: X-User-ID=${user.id}, X-User-Role=${role}`)
-  } else {
-    console.warn('[API] No user data found in localStorage')
+    config.headers['X-User-Role'] = user.role || 'penerbit'
   }
-  
-  console.log(`[API] Request to: ${config.baseURL}${config.url}`)
+
+  // Otomatis kasih prefix /api biar rapi
+  if (config.url && !config.url.startsWith('/api')) {
+    config.url = '/api' + (config.url.startsWith('/') ? '' : '/') + config.url;
+  }
+
   return config
 })
 
 api.interceptors.response.use(
-  (response) => {
-    console.log(`[API] Response from ${response.config.url}:`, response.data)
-    return response
+  (res) => {
+    return res
   },
-  (error) => {
-    if (error.response?.status === 401) {
+  (err) => {
+    if (err.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      window.location.href = '/'
+      if (window.location.pathname !== '/') {
+        window.location.href = '/'
+      }
     }
-    return Promise.reject(error)
+    return Promise.reject(err)
   }
 )
 
