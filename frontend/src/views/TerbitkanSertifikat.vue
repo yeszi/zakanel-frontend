@@ -16,6 +16,7 @@
         <h1 class="text-2xl font-bold text-gray-800">Terbitkan Sertifikat</h1>
       </div>
 
+      <!-- Status MetaMask -->
       <div class="mb-6 p-4 rounded-lg border" :class="isConnected ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'">
         <div class="flex items-center justify-between">
           <div>
@@ -29,43 +30,82 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Form -->
         <div class="lg:col-span-2">
           <div class="card">
             <form @submit.prevent="addToBatch" class="space-y-5">
-              <div><label class="form-label">Nama Kegiatan</label><input v-model="form.nama_kegiatan" type="text" class="form-input w-full" required /></div>
-              <div><label class="form-label">Nama Lokasi</label><input v-model="form.nama_lokasi" type="text" class="form-input w-full" required /></div>
+              <div>
+                <label class="form-label">Nama Kegiatan</label>
+                <input v-model="form.nama_kegiatan" type="text" class="form-input w-full" required />
+              </div>
+              <div>
+                <label class="form-label">Nama Lokasi</label>
+                <input v-model="form.nama_lokasi" type="text" class="form-input w-full" required />
+              </div>
               <div>
                 <label class="form-label">Koordinat GPS</label>
                 <div class="grid grid-cols-2 gap-4">
-                  <div><label class="text-xs">Latitude</label><input v-model="form.latitude" type="number" step="0.0000001" class="form-input w-full" required /></div>
-                  <div><label class="text-xs">Longitude</label><input v-model="form.longitude" type="number" step="0.0000001" class="form-input w-full" required /></div>
+                  <div>
+                    <label class="text-xs">Latitude</label>
+                    <input v-model="form.latitude" type="number" step="0.0000001" class="form-input w-full" required />
+                  </div>
+                  <div>
+                    <label class="text-xs">Longitude</label>
+                    <input v-model="form.longitude" type="number" step="0.0000001" class="form-input w-full" required />
+                  </div>
                 </div>
                 <button type="button" @click="getCurrentLocation" :disabled="loadingLocation" class="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50">
                   {{ loadingLocation ? '⏳ Mengambil lokasi...' : '📍 Ambil Lokasi GPS' }}
                 </button>
               </div>
-              <div><label class="form-label">Waktu Mulai</label><input v-model="form.waktu_mulai" type="datetime-local" class="form-input w-full" required /></div>
-              <div><label class="form-label">Waktu Selesai</label><input v-model="form.waktu_selesai" type="datetime-local" class="form-input w-full" required /></div>
-              <div><label class="form-label">Nama Lengkap Peserta</label><input v-model="form.nama_peserta" type="text" class="form-input w-full" required /></div>
-              <div><label class="form-label">Keterangan <span class="text-gray-400 font-normal">(opsional)</span></label><textarea v-model="form.keterangan" rows="2" class="form-input w-full" placeholder="Deskripsi tambahan..."></textarea></div>
+              <div>
+                <label class="form-label">Waktu Mulai</label>
+                <input v-model="form.waktu_mulai" type="datetime-local" class="form-input w-full" required />
+              </div>
+              <div>
+                <label class="form-label">Waktu Selesai</label>
+                <input v-model="form.waktu_selesai" type="datetime-local" class="form-input w-full" required />
+              </div>
+              <div>
+                <label class="form-label">Nama Lengkap Peserta</label>
+                <input v-model="form.nama_peserta" type="text" class="form-input w-full" required />
+              </div>
+              <div>
+                <label class="form-label">Keterangan <span class="text-gray-400 font-normal">(opsional)</span></label>
+                <textarea v-model="form.keterangan" rows="2" class="form-input w-full" placeholder="Deskripsi tambahan..."></textarea>
+              </div>
               <button type="submit" :disabled="loading" class="w-full btn-primary py-2 disabled:opacity-50">+ Tambah Antrean Batch</button>
             </form>
           </div>
         </div>
 
+        <!-- Tabel Antrean -->
         <div class="lg:col-span-1">
           <div class="card sticky top-8">
             <div class="flex items-center justify-between mb-4">
               <h3 class="font-semibold text-gray-800">📋 Tabel Antrean</h3>
               <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{{ batch.length }} data</span>
             </div>
+
             <div v-if="batch.length === 0" class="text-center py-12 text-gray-400 text-sm">Belum ada data</div>
+
             <div v-else class="space-y-3 max-h-[400px] overflow-y-auto">
               <div v-for="(item, index) in batch" :key="index" class="bg-gray-50 rounded-lg p-4 border">
-                <p class="font-medium text-gray-800">{{ item.nama_peserta }}</p>
-                <button @click="removeFromBatch(index)" class="text-red-500 hover:text-red-700 text-sm mt-2">🗑 hapus</button>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="font-medium text-gray-800">{{ item.nama_peserta }}</p>
+                    <p class="text-xs text-gray-500">{{ item.nama_kegiatan }} · {{ item.nama_lokasi }}</p>
+                  </div>
+                  <div class="flex space-x-2">
+                    <!-- 🔥 TOMBOL EDIT -->
+                    <button @click="editBatch(index)" class="text-blue-600 hover:text-blue-800 text-sm font-medium">✏️ edit</button>
+                    <!-- 🔥 TOMBOL HAPUS -->
+                    <button @click="removeFromBatch(index)" class="text-red-500 hover:text-red-700 text-sm font-medium">🗑 hapus</button>
+                  </div>
+                </div>
               </div>
             </div>
+
             <button @click="publishBatch" :disabled="batch.length === 0 || publishing || !isConnected" class="w-full btn-success py-3 mt-4 disabled:opacity-50 text-lg font-semibold">
               {{ publishing ? '⏳ Menerbitkan...' : 'Terbitkan Batch' }}
             </button>
@@ -73,6 +113,7 @@
         </div>
       </div>
 
+      <!-- Modal QR Code -->
       <div v-if="showQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
         <div class="bg-white rounded-xl p-6 max-w-lg w-full">
           <div class="flex items-center justify-between mb-4">
@@ -91,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 import { useContract } from '../composables/useContract'
@@ -125,10 +166,15 @@ const qrCodes = ref([])
 const showQRModal = ref(false)       
 const selectedQR = ref(null)         
 
-const saveToLocalStorage = () => localStorage.setItem('batch_data', JSON.stringify(batch.value))
+// LocalStorage
+const saveToLocalStorage = () => {
+  try { localStorage.setItem('batch_data', JSON.stringify(batch.value)) } catch(e) {}
+}
 const loadFromLocalStorage = () => {
   const saved = localStorage.getItem('batch_data')
-  if (saved) batch.value = JSON.parse(saved)
+  if (saved) {
+    try { batch.value = JSON.parse(saved) } catch (e) {}
+  }
 }
 watch(batch, saveToLocalStorage, { deep: true })
 
@@ -142,13 +188,13 @@ const getCurrentLocation = () => {
     },
     (err) => { 
       loadingLocation.value = false
-      alert("Gagal ambil lokasi: " + err.message)
+      alert('Gagal ambil lokasi: ' + err.message)
     },
     { enableHighAccuracy: true, timeout: 10000 }
   )
 }
 
-// 🔥 TAMBAHKAN FUNGSI EDIT
+// 🔥 FUNGSI EDIT
 const editBatch = (index) => {
   const item = batch.value[index]
   form.nama_kegiatan = item.nama_kegiatan || ''
@@ -159,18 +205,26 @@ const editBatch = (index) => {
   form.waktu_selesai = item.waktu_selesai || ''
   form.nama_peserta = item.nama_peserta || ''
   form.keterangan = item.keterangan || ''
+  // Hapus dari antrean setelah diambil
   batch.value.splice(index, 1)
 }
 
 const addToBatch = () => {
-  // Validasi wajib
-  if (!form.nama_peserta) { alert('Nama peserta wajib diisi!'); return }
-  if (!form.nama_kegiatan) { alert('Nama kegiatan wajib diisi!'); return }
-  if (!form.nama_lokasi) { alert('Nama lokasi wajib diisi!'); return }
-  if (!form.latitude) { alert('Latitude wajib diisi!'); return }
-  if (!form.longitude) { alert('Longitude wajib diisi!'); return }
-  if (!form.waktu_mulai) { alert('Waktu mulai wajib diisi!'); return }
-  if (!form.waktu_selesai) { alert('Waktu selesai wajib diisi!'); return }
+  // Validasi
+  if (!form.nama_peserta) { alert('❌ Nama peserta wajib diisi!'); return }
+  if (!form.nama_kegiatan) { alert('❌ Nama kegiatan wajib diisi!'); return }
+  if (!form.nama_lokasi) { alert('❌ Nama lokasi wajib diisi!'); return }
+  if (!form.latitude) { alert('❌ Latitude wajib diisi!'); return }
+  if (!form.longitude) { alert('❌ Longitude wajib diisi!'); return }
+  if (!form.waktu_mulai) { alert('❌ Waktu mulai wajib diisi!'); return }
+  if (!form.waktu_selesai) { alert('❌ Waktu selesai wajib diisi!'); return }
+
+  // Cek duplikat
+  const isDuplicate = batch.value.some(item => item.nama_peserta === form.nama_peserta)
+  if (isDuplicate) {
+    alert(`⚠️ Data untuk "${form.nama_peserta}" sudah ada di antrean!`)
+    return
+  }
 
   batch.value.push({ 
     ...form,
@@ -178,7 +232,7 @@ const addToBatch = () => {
     longitude: parseFloat(form.longitude)
   })
   
-  // Reset form (keterangan tetap)
+  // Reset form
   form.nama_kegiatan = ''
   form.nama_lokasi = ''
   form.latitude = ''
@@ -188,7 +242,12 @@ const addToBatch = () => {
   form.nama_peserta = ''
 }
 
-const removeFromBatch = (idx) => batch.value.splice(idx, 1)
+// 🔥 FUNGSI HAPUS
+const removeFromBatch = (idx) => {
+  if (confirm(`Hapus data "${batch.value[idx].nama_peserta}" dari antrean?`)) {
+    batch.value.splice(idx, 1)
+  }
+}
 
 const generateQRForSertifikat = async (publicId, index) => {
   try {
@@ -233,7 +292,6 @@ const publishBatch = async () => {
   publishing.value = true
 
   try {
-    // 🔥 Ambil penerbit_id dari authStore
     const penerbitId = authStore.user?.id
     if (!penerbitId) {
       throw new Error('ID penerbit tidak ditemukan!')
