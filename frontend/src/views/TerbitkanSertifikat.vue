@@ -105,12 +105,21 @@ const isConnected = contract.isConnected
 const walletAddress = contract.walletAddress
 const connectWallet = async () => await contract.connectWallet()
 
-const form = reactive({ nama_kegiatan: '', nama_lokasi: '', latitude: '', longitude: '', waktu_mulai: '', waktu_selesai: '', nama_peserta: '', keterangan: '' })
+const form = reactive({ 
+  nama_kegiatan: '', 
+  nama_lokasi: '', 
+  latitude: '', 
+  longitude: '', 
+  waktu_mulai: '', 
+  waktu_selesai: '', 
+  nama_peserta: '', 
+  keterangan: '' 
+})
+
 const batch = ref([])
 const loading = ref(false)
 const publishing = ref(false)
 const loadingLocation = ref(false)
-const locationStatus = ref(null)
 
 const qrCodes = ref([])              
 const showQRModal = ref(false)       
@@ -126,58 +135,188 @@ watch(batch, saveToLocalStorage, { deep: true })
 const getCurrentLocation = () => {
   loadingLocation.value = true
   navigator.geolocation.getCurrentPosition(
-    (pos) => { form.latitude = pos.coords.latitude.toFixed(7); form.longitude = pos.coords.longitude.toFixed(7); loadingLocation.value = false },
-    (err) => { loadingLocation.value = false; alert("Gagal ambil lokasi") },
-    { enableHighAccuracy: true }
+    (pos) => { 
+      form.latitude = pos.coords.latitude.toFixed(7)
+      form.longitude = pos.coords.longitude.toFixed(7)
+      loadingLocation.value = false
+    },
+    (err) => { 
+      loadingLocation.value = false
+      alert("Gagal ambil lokasi: " + err.message)
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
   )
 }
 
+// 🔥 TAMBAHKAN FUNGSI EDIT
+const editBatch = (index) => {
+  const item = batch.value[index]
+  form.nama_kegiatan = item.nama_kegiatan || ''
+  form.nama_lokasi = item.nama_lokasi || ''
+  form.latitude = item.latitude || ''
+  form.longitude = item.longitude || ''
+  form.waktu_mulai = item.waktu_mulai || ''
+  form.waktu_selesai = item.waktu_selesai || ''
+  form.nama_peserta = item.nama_peserta || ''
+  form.keterangan = item.keterangan || ''
+  batch.value.splice(index, 1)
+}
+
 const addToBatch = () => {
-  batch.value.push({ ...form })
+  // Validasi wajib
+  if (!form.nama_peserta) { alert('Nama peserta wajib diisi!'); return }
+  if (!form.nama_kegiatan) { alert('Nama kegiatan wajib diisi!'); return }
+  if (!form.nama_lokasi) { alert('Nama lokasi wajib diisi!'); return }
+  if (!form.latitude) { alert('Latitude wajib diisi!'); return }
+  if (!form.longitude) { alert('Longitude wajib diisi!'); return }
+  if (!form.waktu_mulai) { alert('Waktu mulai wajib diisi!'); return }
+  if (!form.waktu_selesai) { alert('Waktu selesai wajib diisi!'); return }
+
+  batch.value.push({ 
+    ...form,
+    latitude: parseFloat(form.latitude),
+    longitude: parseFloat(form.longitude)
+  })
+  
+  // Reset form (keterangan tetap)
+  form.nama_kegiatan = ''
+  form.nama_lokasi = ''
+  form.latitude = ''
+  form.longitude = ''
+  form.waktu_mulai = ''
+  form.waktu_selesai = ''
   form.nama_peserta = ''
 }
 
 const removeFromBatch = (idx) => batch.value.splice(idx, 1)
 
-// 🔥 API GET DIGUNAKAN DI SINI UNTUK MENGHINDARI ERROR FETCH
 const generateQRForSertifikat = async (publicId, index) => {
   try {
     const response = await api.get(`/sertifikat/generate-qr/${publicId}`)
     if (response.data.success) {
-      qrCodes.value[index] = { public_id: publicId, qr_code: response.data.qr_code, verify_url: response.data.verify_url }
+      qrCodes.value[index] = { 
+        public_id: publicId, 
+        qr_code: response.data.qr_code, 
+        verify_url: response.data.verify_url 
+      }
     }
-  } catch (error) { console.error('Error QR:', error) }
+  } catch (error) { 
+    console.error('Error QR:', error) 
+  }
 }
 
-const closeQRModal = () => { showQRModal.value = false; selectedQR.value = null }
+const closeQRModal = () => { 
+  showQRModal.value = false
+  selectedQR.value = null
+}
 
 const publishBatch = async () => {
+  if (batch.value.length === 0) {
+    alert('❌ Antrean kosong!')
+    return
+  }
+
+  if (!isConnected.value) {
+    alert('⚠️ Silakan connect MetaMask terlebih dahulu!')
+    return
+  }
+
+  if (!authStore.user || authStore.user.role !== 'penerbit') {
+    alert('❌ Anda bukan penerbit!')
+    return
+  }
+
+  if (!confirm(`📤 Terbitkan ${batch.value.length} sertifikat?\n\n⚠️ Transaksi ini akan membutuhkan GAS FEE di MetaMask!`)) {
+    return
+  }
+
   publishing.value = true
+
   try {
-    const penerbitId = authStore.user?.id || 3
-    const prepareRes = await api.post('/sertifikat/prepare', { sertifikat_list: batch.value, penerbit_id: penerbitId })
-    
-    const allData = prepareRes.data.data
+    // 🔥 Ambil penerbit_id dari authStore
+    const penerbitId = authStore.user?.id
+    if (!penerbitId) {
+      throw new Error('ID penerbit tidak ditemukan!')
+    }
+
+    console.log('📤 Menerbitkan batch dengan penerbit_id:', penerbitId)
+    console.log('📤 Data batch:', batch.value)
+
+    // STEP 1: Prepare ke backend
+    const prepareRes = await api.post('/sertifikat/prepare', { 
+      sertifikat_list: batch.value, 
+      penerbit_id: penerbitId 
+    })
+
+    console.log('✅ Prepare response:', prepareRes.data)
+
+    if (!prepareRes.data.success) {
+      throw new Error(prepareRes.data.error || 'Gagal prepare sertifikat')
+    }
+
+    const allData = prepareRes.data.data || []
     const merkleRoot = prepareRes.data.merkle_root
-    const batchIdOnchain = Date.now()
+    const batchIdOnchain = prepareRes.data.batch_id || Date.now()
+
+    if (!merkleRoot || allData.length === 0) {
+      throw new Error('Merkle Root atau data sertifikat kosong!')
+    }
+
     const publicId = allData[0].public_id
 
+    // STEP 2: Simpan ke Blockchain via MetaMask
     const txSuccess = await contract.simpanRoot(batchIdOnchain, merkleRoot, publicId)
-    if (!txSuccess) throw new Error("Gagal Blockchain")
+    if (!txSuccess) {
+      throw new Error('Gagal simpan root di blockchain: ' + contract.error.value)
+    }
 
+    // STEP 3: Konfirmasi ke backend
     await api.post('/sertifikat/konfirmasi', {
-      merkle_root: merkleRoot, tx_hash: contract.txHash.value, batch_id_onchain: batchIdOnchain,
+      merkle_root: merkleRoot,
+      tx_hash: contract.txHash.value,
+      batch_id_onchain: batchIdOnchain,
       sertifikat_list: allData.map(i => ({ public_id: i.public_id, proof: [] }))
     })
 
+    // STEP 4: Generate QR Code
     qrCodes.value = []
-    for (let i = 0; i < allData.length; i++) await generateQRForSertifikat(allData[i].public_id, i)
-    if (qrCodes.value.length > 0) { selectedQR.value = qrCodes.value[0]; showQRModal.value = true }
+    for (let i = 0; i < allData.length; i++) {
+      await generateQRForSertifikat(allData[i].public_id, i)
+    }
+    
+    if (qrCodes.value.length > 0) {
+      selectedQR.value = qrCodes.value[0]
+      showQRModal.value = true
+    }
+
+    // STEP 5: Kosongkan antrean
     batch.value = []
-  } catch (error) { alert("Error: " + error.message) }
+    localStorage.removeItem('batch_data')
+
+    alert(`✅ ${allData.length} sertifikat berhasil diterbitkan!\n🔗 TX: ${contract.txHash.value.slice(0, 10)}...`)
+
+  } catch (error) {
+    console.error('❌ Error:', error)
+    
+    let errorMessage = error.message || 'Terjadi kesalahan'
+    if (error.response?.data?.error) {
+      errorMessage = error.response.data.error
+    } else if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+      errorMessage = 'Transaksi dibatalkan di MetaMask'
+    } else if (error.message?.includes('insufficient funds')) {
+      errorMessage = 'Saldo ETH tidak cukup untuk gas fee!'
+    }
+    
+    alert('❌ Gagal: ' + errorMessage)
+  }
+
   publishing.value = false
 }
 
-const logout = () => { authStore.logout(); router.push('/') }
+const logout = () => { 
+  authStore.logout()
+  router.push('/') 
+}
+
 onMounted(loadFromLocalStorage)
 </script>
