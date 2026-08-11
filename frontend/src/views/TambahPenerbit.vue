@@ -3,159 +3,445 @@
     <!-- Sidebar -->
     <div class="w-64 bg-white border-r border-gray-200 p-4 min-h-screen flex flex-col">
       <h1 class="text-lg font-bold text-blue-700">MENU</h1>
-      <p class="text-xs text-gray-400 mt-1">Admin</p>
-      
+      <p class="text-xs text-gray-400 mt-1">Penerbit</p>
       <nav class="mt-8 space-y-2 flex-1">
-        <router-link to="/admin" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Dashboard</router-link>
-        <router-link to="/admin/tambah-penerbit" class="block px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium">(+) Tambah Penerbit</router-link>
-        <router-link to="/admin/data-penerbit" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">(=) Data Penerbit</router-link>
+        <router-link to="/publisher" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Dashboard</router-link>
+        <router-link to="/publisher/terbitkan" class="block px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium">(+) Terbitkan Sertifikat</router-link>
+        <router-link to="/publisher/monitoring" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">(=) Monitoring Data</router-link>
       </nav>
-      
       <button @click="logout" class="block w-full text-left px-3 py-2 rounded-lg text-red-600 hover:bg-red-50">Logout</button>
     </div>
-    
+
     <!-- Content -->
     <div class="flex-1 p-8">
-      <h1 class="text-2xl font-bold text-gray-800 mb-6">Tambahkan Penerbit</h1>
-      <h1 class="text-2xl font-bold text-gray-800 mb-6"> Universitas Maritim Raja Ali Haji</h1>
+      <h1 class="text-2xl font-bold text-gray-800 mb-6">Terbitkan Sertifikat</h1>
 
-      <div class="max-w-2xl">
-        <div class="card">
-          <!-- Status MetaMask -->
-          <div class="mb-4 p-3 rounded-lg" :class="isConnected ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium" :class="isConnected ? 'text-green-700' : 'text-yellow-700'">
-                {{ isConnected ? '✅ MetaMask Terhubung' : '⚠️ MetaMask Belum Terhubung' }}
-              </span>
-              <button @click="connectWallet" class="text-xs px-3 py-1 rounded-lg" :class="isConnected ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'">
-                {{ isConnected ? walletAddress.slice(0,6) + '...' + walletAddress.slice(-4) : 'Hubungkan' }}
-              </button>
-            </div>
-            <p v-if="walletAddress" class="text-xs text-gray-500 mt-1 font-mono">{{ walletAddress }}</p>
+      <!-- Status MetaMask -->
+      <div class="mb-6 p-4 rounded-lg border" :class="isConnected ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium" :class="isConnected ? 'text-green-700' : 'text-yellow-700'">
+              {{ isConnected ? '✅ Wallet Terhubung' : '⚠️ Wallet Belum Terhubung' }}
+            </p>
+            <p v-if="isConnected" class="text-xs text-gray-500 mt-1">{{ walletAddress }}</p>
           </div>
-
-          <!-- Pesan -->
-          <div v-if="success" class="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg">{{ success }}</div>
-          <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">{{ error }}</div>
-
-          <!-- Loading Transaksi -->
-          <div v-if="loading" class="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-center">
-            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto mb-2"></div>
-            <p>⏳ Memproses transaksi di blockchain...</p>
-            <p class="text-xs text-gray-500">Konfirmasi di MetaMask (Gas Fee)</p>
-          </div>
-
-          <!-- TX Hash -->
-          <div v-if="txHash" class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-            <p class="text-xs text-gray-500">🔗 TX Hash:</p>
-            <p class="text-xs font-mono text-gray-700 break-all">{{ txHash }}</p>
-            <a :href="`https://sepolia.etherscan.io/tx/${txHash}`" target="_blank" class="text-xs text-blue-600 hover:underline">Lihat di Etherscan →</a>
-          </div>
-
-          <!-- Form -->
-          <form @submit.prevent="handleSubmit" class="space-y-4">
-            <div>
-              <label class="form-label">username</label>
-              <input v-model="form.username" type="text" class="form-input w-full" required />
-            </div>
-            <div>
-              <label class="form-label">password</label>
-              <input v-model="form.password" type="password" class="form-input w-full" required />
-            </div>
-            <div>
-              <label class="form-label">role</label>
-              <select v-model="form.role" class="form-input w-full">
-                <option value="penerbit">Penerbit</option>
-              </select>
-            </div>
-            <div>
-              <label class="form-label">wallet_address</label>
-              <input v-model="form.wallet_address" type="text" class="form-input w-full" placeholder="0x..." required />
-              <p class="text-xs text-gray-400 mt-1">Melakukan Transaksi</p>
-            </div>
-            <div>
-              <label class="form-label">nama_lengkap</label>
-              <input v-model="form.nama_lengkap" type="text" class="form-input w-full" required />
-            </div>
-
-            <button type="submit" :disabled="loading || !isConnected" class="w-full btn-primary py-3 disabled:opacity-50">
-              {{ loading ? '⏳ Memproses...' : 'Tambahkan' }}
-            </button>
-            <p v-if="!isConnected" class="text-xs text-yellow-600 text-center">⚠️ Hubungkan MetaMask dulu!</p>
-          </form>
+          <button v-if="!isConnected" @click="connectWallet" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-medium">Connect MetaMask</button>
         </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Form -->
+        <div class="lg:col-span-2">
+          <div class="card">
+            <form @submit.prevent="addToBatch" class="space-y-5">
+              <div>
+                <label class="form-label">Nama Kegiatan</label>
+                <input v-model="form.nama_kegiatan" type="text" class="form-input w-full" required />
+              </div>
+              <div>
+                <label class="form-label">Nama Lokasi</label>
+                <input v-model="form.nama_lokasi" type="text" class="form-input w-full" required />
+              </div>
+              <div>
+                <label class="form-label">Koordinat GPS</label>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="text-xs">Latitude</label>
+                    <input v-model="form.latitude" type="number" step="0.0000001" class="form-input w-full" required />
+                  </div>
+                  <div>
+                    <label class="text-xs">Longitude</label>
+                    <input v-model="form.longitude" type="number" step="0.0000001" class="form-input w-full" required />
+                  </div>
+                </div>
+                <button type="button" @click="getCurrentLocation" :disabled="loadingLocation" class="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50">
+                  {{ loadingLocation ? '⏳ Mengambil lokasi...' : '📍 Ambil Lokasi GPS' }}
+                </button>
+              </div>
+              <div>
+                <label class="form-label">Waktu Mulai</label>
+                <input v-model="form.waktu_mulai" type="datetime-local" class="form-input w-full" required />
+              </div>
+              <div>
+                <label class="form-label">Waktu Selesai</label>
+                <input v-model="form.waktu_selesai" type="datetime-local" class="form-input w-full" required />
+              </div>
+              <div>
+                <label class="form-label">Nama Lengkap Peserta</label>
+                <input v-model="form.nama_peserta" type="text" class="form-input w-full" required />
+              </div>
+              <div>
+                <label class="form-label">Keterangan <span class="text-gray-400 font-normal">(opsional)</span></label>
+                <textarea v-model="form.keterangan" rows="2" class="form-input w-full" placeholder="Deskripsi tambahan..."></textarea>
+              </div>
+              <button type="submit" :disabled="loading" class="w-full btn-primary py-2 disabled:opacity-50">+ Tambah Antrean Batch</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Tabel Antrean -->
+        <div class="lg:col-span-1">
+          <div class="card sticky top-8">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold text-gray-800">📋 Tabel Antrean</h3>
+              <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{{ batch.length }} data</span>
+            </div>
+
+            <div v-if="batch.length === 0" class="text-center py-12 text-gray-400 text-sm">Belum ada data</div>
+
+            <div v-else class="space-y-3 max-h-[400px] overflow-y-auto">
+              <div v-for="(item, index) in batch" :key="index" class="bg-gray-50 rounded-lg p-4 border">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="font-medium text-gray-800">{{ item.nama_peserta }}</p>
+                    <p class="text-xs text-gray-500">{{ item.nama_kegiatan }} · {{ item.nama_lokasi }}</p>
+                  </div>
+                  <div class="flex space-x-2">
+                    <button @click="openEditModal(index)" class="text-blue-600 hover:text-blue-800 text-sm font-medium">✏️ edit</button>
+                    <button @click="removeFromBatch(index)" class="text-red-500 hover:text-red-700 text-sm font-medium">🗑 hapus</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button @click="publishBatch" :disabled="batch.length === 0 || publishing || !isConnected" class="w-full btn-success py-3 mt-4 disabled:opacity-50 text-lg font-semibold">
+              {{ publishing ? '⏳ Menerbitkan...' : 'Terbitkan Batch' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL EDIT -->
+    <div v-if="editModal.show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">✏️ Edit Data Sertifikat</h3>
+          <button @click="closeEditModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveEdit" class="space-y-4">
+          <div>
+            <label class="form-label">Nama Kegiatan</label>
+            <input v-model="editForm.nama_kegiatan" type="text" class="form-input w-full" required />
+          </div>
+          <div>
+            <label class="form-label">Nama Lokasi</label>
+            <input v-model="editForm.nama_lokasi" type="text" class="form-input w-full" required />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="form-label">Latitude</label>
+              <input v-model="editForm.latitude" type="number" step="0.0000001" class="form-input w-full" required />
+            </div>
+            <div>
+              <label class="form-label">Longitude</label>
+              <input v-model="editForm.longitude" type="number" step="0.0000001" class="form-input w-full" required />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="form-label">Waktu Mulai</label>
+              <input v-model="editForm.waktu_mulai" type="datetime-local" class="form-input w-full" required />
+            </div>
+            <div>
+              <label class="form-label">Waktu Selesai</label>
+              <input v-model="editForm.waktu_selesai" type="datetime-local" class="form-input w-full" required />
+            </div>
+          </div>
+          <div>
+            <label class="form-label">Nama Lengkap Peserta</label>
+            <input v-model="editForm.nama_peserta" type="text" class="form-input w-full" required />
+          </div>
+          <div>
+            <label class="form-label">Keterangan Tambahan</label>
+            <textarea v-model="editForm.keterangan" rows="2" class="form-input w-full"></textarea>
+          </div>
+
+          <div class="flex space-x-3 pt-4">
+            <button type="button" @click="closeEditModal" class="flex-1 btn-secondary py-2">Batal</button>
+            <button type="submit" class="flex-1 btn-primary py-2">Simpan Perubahan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal QR Code -->
+    <div v-if="showQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+      <div class="bg-white rounded-xl p-6 max-w-lg w-full">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">📱 QR Code</h3>
+          <button @click="closeQRModal" class="text-gray-400">X</button>
+        </div>
+        <div v-if="selectedQR" class="text-center">
+          <img :src="selectedQR.qr_code" alt="QR" class="mx-auto w-64 h-64" />
+          <p class="mt-2 text-sm text-gray-600 break-all">🔗 {{ selectedQR.verify_url }}</p>
+        </div>
+        <button @click="closeQRModal" class="btn-secondary px-6 py-2 w-full mt-4">Tutup</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
-import api from '../services/api'
 import { useContract } from '../composables/useContract'
+import api from '../services/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const contract = useContract()
 
-const form = ref({
-  username: '',
-  password: '',
-  role: 'penerbit',
-  wallet_address: '',
-  nama_lengkap: ''
-})
-
-const loading = ref(false)
-const error = ref('')
-const success = ref('')
-const txHash = ref('')
-
-// MetaMask
 const isConnected = contract.isConnected
 const walletAddress = contract.walletAddress
+const connectWallet = async () => await contract.connectWallet()
 
-const connectWallet = async () => {
-  await contract.connectWallet()
+// Form utama (untuk tambah baru)
+const form = reactive({
+  nama_kegiatan: '',
+  nama_lokasi: '',
+  latitude: '',
+  longitude: '',
+  waktu_mulai: '',
+  waktu_selesai: '',
+  nama_peserta: '',
+  keterangan: ''
+})
+
+// Modal Edit
+const editModal = ref({ show: false, index: null })
+const editForm = reactive({
+  nama_kegiatan: '',
+  nama_lokasi: '',
+  latitude: '',
+  longitude: '',
+  waktu_mulai: '',
+  waktu_selesai: '',
+  nama_peserta: '',
+  keterangan: ''
+})
+
+const batch = ref([])
+const loading = ref(false)
+const publishing = ref(false)
+const loadingLocation = ref(false)
+
+const qrCodes = ref([])
+const showQRModal = ref(false)
+const selectedQR = ref(null)
+
+// 🔥 Fungsi reset form (agar tidak duplikasi kode)
+const resetForm = () => {
+  form.nama_kegiatan = ''
+  form.nama_lokasi = ''
+  form.latitude = ''
+  form.longitude = ''
+  form.waktu_mulai = ''
+  form.waktu_selesai = ''
+  form.nama_peserta = ''
+  form.keterangan = ''   // 🔥 INI YANG PALING PENTING!
 }
 
-const handleSubmit = async () => {
-  loading.value = true
-  error.value = ''
-  success.value = ''
-  txHash.value = ''
+// LocalStorage
+const saveToLocalStorage = () => {
+  try { localStorage.setItem('batch_data', JSON.stringify(batch.value)) } catch(e) {}
+}
+const loadFromLocalStorage = () => {
+  const saved = localStorage.getItem('batch_data')
+  if (saved) {
+    try { batch.value = JSON.parse(saved) } catch (e) {}
+  }
+}
+watch(batch, saveToLocalStorage, { deep: true })
 
-  try {
-    // STEP 1: Simpan ke database
-    const res = await api.post('/penerbit', form.value)
-    if (!res.data.success) {
-      error.value = '❌ ' + (res.data.message || 'Gagal simpan')
-      loading.value = false
-      return
-    }
+const getCurrentLocation = () => {
+  loadingLocation.value = true
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      form.latitude = pos.coords.latitude.toFixed(7)
+      form.longitude = pos.coords.longitude.toFixed(7)
+      loadingLocation.value = false
+    },
+    (err) => {
+      loadingLocation.value = false
+      alert('Gagal ambil lokasi: ' + err.message)
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  )
+}
 
-    // STEP 2: Daftarkan ke blockchain (via MetaMask)
-    const txSuccess = await contract.tambahPenerbit(form.value.wallet_address)
-    if (!txSuccess) {
-      error.value = '❌ Gagal di blockchain: ' + contract.error.value
-      loading.value = false
-      return
-    }
+// BUKA MODAL EDIT
+const openEditModal = (index) => {
+  const item = batch.value[index]
+  editForm.nama_kegiatan = item.nama_kegiatan || ''
+  editForm.nama_lokasi = item.nama_lokasi || ''
+  editForm.latitude = item.latitude || ''
+  editForm.longitude = item.longitude || ''
+  editForm.waktu_mulai = item.waktu_mulai || ''
+  editForm.waktu_selesai = item.waktu_selesai || ''
+  editForm.nama_peserta = item.nama_peserta || ''
+  editForm.keterangan = item.keterangan || ''
+  editModal.value.show = true
+  editModal.value.index = index
+}
 
-    // STEP 3: SUKSES!
-    txHash.value = contract.txHash.value
-    success.value = '✅ Penerbit berhasil ditambahkan ke database & blockchain!'
+// SIMPAN EDIT
+const saveEdit = () => {
+  const index = editModal.value.index
+  batch.value[index] = { ...editForm }
+  closeEditModal()
+}
 
-    // Reset form
-    form.value = { username: '', password: '', role: 'penerbit', wallet_address: '', nama_lengkap: '' }
+// TUTUP MODAL
+const closeEditModal = () => {
+  editModal.value.show = false
+  editModal.value.index = null
+}
 
-  } catch (err) {
-    error.value = '❌ Gagal: ' + err.message
+// 🔥 FUNGSI TAMBAH KE BATCH (sudah benar)
+const addToBatch = () => {
+  if (!form.nama_peserta) { alert('❌ Nama peserta wajib diisi!'); return }
+  if (!form.nama_kegiatan) { alert('❌ Nama kegiatan wajib diisi!'); return }
+  if (!form.nama_lokasi) { alert('❌ Nama lokasi wajib diisi!'); return }
+  if (!form.latitude) { alert('❌ Latitude wajib diisi!'); return }
+  if (!form.longitude) { alert('❌ Longitude wajib diisi!'); return }
+  if (!form.waktu_mulai) { alert('❌ Waktu mulai wajib diisi!'); return }
+  if (!form.waktu_selesai) { alert('❌ Waktu selesai wajib diisi!'); return }
+
+  const isDuplicate = batch.value.some(item => item.nama_peserta === form.nama_peserta)
+  if (isDuplicate) {
+    alert(`⚠️ Data untuk "${form.nama_peserta}" sudah ada di antrean!`)
+    return
   }
 
-  loading.value = false
+  batch.value.push({
+    ...form,
+    latitude: parseFloat(form.latitude),
+    longitude: parseFloat(form.longitude)
+  })
+
+  // Reset form setelah berhasil tambah
+  resetForm()
+}
+
+const removeFromBatch = (idx) => {
+  if (confirm(`Hapus data "${batch.value[idx].nama_peserta}" dari antrean?`)) {
+    batch.value.splice(idx, 1)
+  }
+}
+
+const generateQRForSertifikat = async (publicId, index) => {
+  try {
+    const response = await api.get(`/sertifikat/generate-qr/${publicId}`)
+    if (response.data.success) {
+      qrCodes.value[index] = {
+        public_id: publicId,
+        qr_code: response.data.qr_code,
+        verify_url: response.data.verify_url
+      }
+    }
+  } catch (error) {
+    console.error('Error QR:', error)
+  }
+}
+
+const closeQRModal = () => {
+  showQRModal.value = false
+  selectedQR.value = null
+}
+
+const publishBatch = async () => {
+  if (batch.value.length === 0) {
+    alert('❌ Antrean kosong!')
+    return
+  }
+
+  if (!isConnected.value) {
+    alert('⚠️ Silakan connect MetaMask terlebih dahulu!')
+    return
+  }
+
+  if (!authStore.user || authStore.user.role !== 'penerbit') {
+    alert('❌ Anda bukan penerbit!')
+    return
+  }
+
+  if (!confirm(`📤 Terbitkan ${batch.value.length} sertifikat?\n\n⚠️ Transaksi ini akan membutuhkan GAS FEE di MetaMask!`)) {
+    return
+  }
+
+  publishing.value = true
+
+  try {
+    const penerbitId = authStore.user?.id
+    if (!penerbitId) throw new Error('ID penerbit tidak ditemukan!')
+
+    const prepareRes = await api.post('/sertifikat/prepare', {
+      sertifikat_list: batch.value,
+      penerbit_id: penerbitId
+    })
+
+    if (!prepareRes.data.success) {
+      throw new Error(prepareRes.data.error || 'Gagal prepare sertifikat')
+    }
+
+    const allData = prepareRes.data.data || []
+    const merkleRoot = prepareRes.data.merkle_root
+    const batchIdOnchain = prepareRes.data.batch_id || Date.now()
+
+    if (!merkleRoot || allData.length === 0) {
+      throw new Error('Merkle Root atau data sertifikat kosong!')
+    }
+
+    const publicId = allData[0].public_id
+
+    const txSuccess = await contract.simpanRoot(batchIdOnchain, merkleRoot, publicId)
+    if (!txSuccess) {
+      throw new Error('Gagal simpan root di blockchain: ' + contract.error.value)
+    }
+
+    await api.post('/sertifikat/konfirmasi', {
+      merkle_root: merkleRoot,
+      tx_hash: contract.txHash.value,
+      batch_id_onchain: batchIdOnchain,
+      sertifikat_list: allData.map(i => ({ public_id: i.public_id, proof: [] }))
+    })
+
+    qrCodes.value = []
+    for (let i = 0; i < allData.length; i++) {
+      await generateQRForSertifikat(allData[i].public_id, i)
+    }
+
+    if (qrCodes.value.length > 0) {
+      selectedQR.value = qrCodes.value[0]
+      showQRModal.value = true
+    }
+
+    // 🔥 KOSONGKAN ANTREAN
+    batch.value = []
+    localStorage.removeItem('batch_data')
+
+    // 🔥 RESET FORM SETELAH TERBIT (INI YANG DITAMBAHKAN!)
+    resetForm()
+
+    alert(`✅ ${allData.length} sertifikat berhasil diterbitkan!\n🔗 TX: ${contract.txHash.value.slice(0, 10)}...`)
+
+  } catch (error) {
+    console.error('❌ Error:', error)
+    let errorMessage = error.message || 'Terjadi kesalahan'
+    if (error.response?.data?.error) errorMessage = error.response.data.error
+    else if (error.code === 'ACTION_REJECTED' || error.code === 4001) errorMessage = 'Transaksi dibatalkan di MetaMask'
+    else if (error.message?.includes('insufficient funds')) errorMessage = 'Saldo ETH tidak cukup untuk gas fee!'
+    alert('❌ Gagal: ' + errorMessage)
+  }
+
+  publishing.value = false
 }
 
 const logout = () => {
@@ -163,7 +449,5 @@ const logout = () => {
   router.push('/')
 }
 
-onMounted(async () => {
-  await contract.connectWallet()
-})
+onMounted(loadFromLocalStorage)
 </script>
