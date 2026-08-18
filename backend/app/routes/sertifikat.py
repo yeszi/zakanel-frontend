@@ -117,15 +117,12 @@ def verify_sertifikat(public_id):
             if c.get('public_id') == public_id:
                 target_cert = c
 
-            # 🔥 FIX: Paksa konversi latitude & longitude ke float agar format string konsisten
-            lat = float(c.get('latitude', 0))
-            lng = float(c.get('longitude', 0))
-
-            cert_string = f"{c.get('nama_peserta', '')}{c.get('nama_kegiatan', '')}{c.get('nama_lokasi', '')}{lat}{lng}"
+            # Re-construct string data mentah
+            cert_string = f"{c.get('nama_peserta', '')}{c.get('nama_kegiatan', '')}{c.get('nama_lokasi', '')}{c.get('latitude', 0)}{c.get('longitude', 0)}"
             
-            # PRINT LOG UNTUK PENGECEKAN STRING
+            # 🔥 PRINT LOG UNTUK PENGECEKAN STRING
             print(f"📝 [Public ID: {c.get('public_id')}]")
-            print(f"    RAW STRING : '{cert_string}'")
+            print(f"   RAW STRING : '{cert_string}'")
 
             hash_val = hashlib.sha256(cert_string.encode()).hexdigest()
             hashes.append(hash_val)
@@ -137,7 +134,7 @@ def verify_sertifikat(public_id):
         combined = ''.join(hashes)
         recalculated_root = '0x' + hashlib.sha256(combined.encode()).hexdigest()
 
-        # PRINT HASIL PERBANDINGAN ROOT
+        # 🔥 PRINT HASIL PERBANDINGAN ROOT
         print(f"🌳 RECALCULATED ROOT (Supabase) : {recalculated_root}")
         print(f"⛓️ ONCHAIN ROOT      (Blockchain): {onchain_merkle_root}")
         print("=" * 50 + "\n")
@@ -312,10 +309,12 @@ def prepare_sertifikat():
         print("📝 REQUEST DATA:", data)
         print("=" * 50)
 
+        # 🔥 Ambil penerbit_id dari body atau header
         penerbit_id = data.get('penerbit_id')
         if not penerbit_id:
             penerbit_id = request.headers.get('X-User-ID')
         
+        # 🔥 Jika masih None, set default 3 (atau bisa return error)
         if not penerbit_id:
             return jsonify({'success': False, 'error': 'penerbit_id tidak ditemukan'}), 400
         
@@ -337,14 +336,10 @@ def prepare_sertifikat():
             # Validasi data wajib
             required_fields = ['nama_peserta', 'nama_kegiatan', 'nama_lokasi', 'latitude', 'longitude']
             for field in required_fields:
-                if cert.get(field) is None or cert.get(field) == '':
+                if not cert.get(field):
                     return jsonify({'success': False, 'error': f'Field {field} wajib diisi'}), 400
 
-            # 🔥 FIX: Paksa konversi ke float saat hashing awal
-            lat = float(cert.get('latitude', 0))
-            lng = float(cert.get('longitude', 0))
-
-            cert_string = f"{cert.get('nama_peserta')}{cert.get('nama_kegiatan')}{cert.get('nama_lokasi')}{lat}{lng}"
+            cert_string = f"{cert.get('nama_peserta')}{cert.get('nama_kegiatan')}{cert.get('nama_lokasi')}{cert.get('latitude')}{cert.get('longitude')}"
             hash_val = hashlib.sha256(cert_string.encode()).hexdigest()
             hashes.append(hash_val)
 
@@ -352,7 +347,7 @@ def prepare_sertifikat():
         merkle_root = '0x' + hashlib.sha256(combined.encode()).hexdigest()
         print(f"🌳 Merkle Root: {merkle_root}")
 
-        # INSERT BATCH
+        # 🔥 INSERT BATCH
         batch_id = int(time.time() * 1000)
         try:
             supabase.table('batch_sertifikat').insert({
@@ -365,7 +360,7 @@ def prepare_sertifikat():
             print(f"⚠️ Gagal insert batch: {e}")
             return jsonify({'success': False, 'error': f'Gagal insert batch: {str(e)}'}), 500
 
-        # INSERT SERTIFIKAT
+        # 🔥 INSERT SERTIFIKAT
         base_url = os.getenv('VERIFICATION_BASE_URL', 'https://zakanel-frontend.pages.dev')
         if base_url.endswith('/'):
             base_url = base_url[:-1]
@@ -405,6 +400,7 @@ def prepare_sertifikat():
                     print(f"❌ Gagal insert {new_cert['nama_peserta']}")
             except Exception as e:
                 print(f"❌ Error insert sertifikat: {e}")
+                # Lanjutkan ke data berikutnya, tapi catat error
 
         if not results:
             return jsonify({'success': False, 'error': 'Gagal menyimpan semua sertifikat'}), 500
