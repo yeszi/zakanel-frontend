@@ -31,8 +31,8 @@ def create_app():
     from app.routes.sertifikat import sertifikat_bp
 
     # 🔥 PERBAIKAN PENTING: tambahkan url_prefix='/auth' untuk auth_bp
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(sertifikat_bp)  # untuk sertifikat, prefix sudah ada di blueprint-nya (/api)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(sertifikat_bp)
 
     # === ROUTES UMUM ===
     @app.route('/')

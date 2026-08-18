@@ -20,7 +20,11 @@ const CONTRACT_ABI = [
   {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"penerbitAktif","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
   {"inputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"name":"publicIdToBatchId","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   {"inputs":[{"internalType":"uint256","name":"_batchId","type":"uint256"},{"internalType":"bytes32","name":"_merkleRoot","type":"bytes32"}],"name":"simpanRoot","outputs":[],"stateMutability":"nonpayable","type":"function"},
-  {"inputs":[{"internalType":"uint256","name":"_batchId","type":"uint256"},{"internalType":"bytes32","name":"_merkleRoot","type":"bytes32"},{"internalType":"bytes32","name":"_publicId","type":"bytes32"}],"name":"simpanRoot","outputs":[],"stateMutability":"nonpayable","type":"function"}
+  {"inputs":[{"internalType":"uint256","name":"_batchId","type":"uint256"},{"internalType":"bytes32","name":"_merkleRoot","type":"bytes32"},{"internalType":"bytes32","name":"_publicId","type":"bytes32"}],"name":"simpanRoot","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  
+  // 👇 REVISI: Penambahan ABI untuk tambahPenerbit dan verifyCertificate 👇
+  {"inputs":[{"internalType":"address","name":"_wallet","type":"address"}],"name":"tambahPenerbit","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"bytes32","name":"_publicId","type":"bytes32"},{"internalType":"bytes32","name":"_merkleRoot","type":"bytes32"}],"name":"verifyCertificate","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"}
 ]
 
 export function useContract() {
