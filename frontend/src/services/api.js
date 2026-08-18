@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-let baseURL = import.meta.env.VITE_API_BASE_URL || 'https://affiliate-symptoms-buying-fitted.trycloudflare.com'
+let baseURL = import.meta.env.VITE_API_BASE_URL || 'https://wrist-adaptation-luck-sympathy.trycloudflare.com'
 
 if (baseURL.endsWith('/')) {
   baseURL = baseURL.slice(0, -1)

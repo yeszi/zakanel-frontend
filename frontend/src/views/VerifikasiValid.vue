@@ -21,7 +21,7 @@
           <p class="text-sm text-gray-500 mb-6">Sertifikat ini sah dan tercatat di blockchain</p>
         </div>
 
-        <!-- DATA SERTIFIKAT (TANPA TX HASH & MERKLE ROOT) -->
+        <!-- DATA SERTIFIKAT -->
         <div class="bg-gray-50 rounded-xl p-4 space-y-3">
           <div class="flex justify-between py-2 border-b border-gray-200">
             <span class="text-sm text-gray-500">Nama Peserta</span>
@@ -49,11 +49,8 @@
           </div>
         </div>
 
-        <!-- 🔥 HANYA BADGE "TERVERIFIKASI" TANPA TX HASH & MERKLE ROOT -->
         <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 text-center">
-          <p class="text-sm text-green-700 font-medium">
-            ✅ Sertifikat ini telah diverifikasi dan tercatat di blockchain
-          </p>
+          <p class="text-sm text-green-700 font-medium">✅ Sertifikat ini telah diverifikasi dan tercatat di blockchain</p>
         </div>
 
         <button @click="goHome" class="w-full btn-primary py-3 mt-6">Kembali ke Beranda</button>
