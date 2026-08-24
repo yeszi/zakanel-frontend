@@ -97,7 +97,6 @@
                     <p class="text-xs text-gray-500">{{ item.nama_kegiatan }} · {{ item.nama_lokasi }}</p>
                   </div>
                   <div class="flex space-x-2">
-                    <!-- 🔥 Tombol Edit – buka modal -->
                     <button @click="openEditModal(index)" class="text-blue-600 hover:text-blue-800 text-sm font-medium">✏️ edit</button>
                     <button @click="removeFromBatch(index)" class="text-red-500 hover:text-red-700 text-sm font-medium">🗑 hapus</button>
                   </div>
@@ -113,7 +112,7 @@
       </div>
     </div>
 
-    <!-- 🔥 MODAL EDIT (POP-UP) -->
+    <!-- MODAL EDIT -->
     <div v-if="editModal.show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
@@ -203,7 +202,7 @@ const isConnected = contract.isConnected
 const walletAddress = contract.walletAddress
 const connectWallet = async () => await contract.connectWallet()
 
-// Form utama (untuk tambah baru)
+// Form utama
 const form = reactive({
   nama_kegiatan: '',
   nama_lokasi: '',
@@ -265,7 +264,7 @@ const getCurrentLocation = () => {
   )
 }
 
-// 🔥 BUKA MODAL EDIT
+// BUKA MODAL EDIT
 const openEditModal = (index) => {
   const item = batch.value[index]
   editForm.nama_kegiatan = item.nama_kegiatan || ''
@@ -280,20 +279,20 @@ const openEditModal = (index) => {
   editModal.value.index = index
 }
 
-// 🔥 SIMPAN EDIT
+// SIMPAN EDIT
 const saveEdit = () => {
   const index = editModal.value.index
   batch.value[index] = { ...editForm }
   closeEditModal()
 }
 
-// 🔥 TUTUP MODAL
+// TUTUP MODAL
 const closeEditModal = () => {
   editModal.value.show = false
   editModal.value.index = null
 }
 
-// 🔥 FUNGSI TAMBAH KE BATCH
+// TAMBAH KE BATCH (sudah diperbaiki: reset keterangan)
 const addToBatch = () => {
   if (!form.nama_peserta) { alert('❌ Nama peserta wajib diisi!'); return }
   if (!form.nama_kegiatan) { alert('❌ Nama kegiatan wajib diisi!'); return }
@@ -315,6 +314,7 @@ const addToBatch = () => {
     longitude: parseFloat(form.longitude)
   })
 
+  // Reset semua field termasuk keterangan
   form.nama_kegiatan = ''
   form.nama_lokasi = ''
   form.latitude = ''
@@ -322,6 +322,7 @@ const addToBatch = () => {
   form.waktu_mulai = ''
   form.waktu_selesai = ''
   form.nama_peserta = ''
+  form.keterangan = ''   // <-- PERBAIKAN: reset keterangan
 }
 
 const removeFromBatch = (idx) => {

@@ -297,7 +297,7 @@ onMounted(() => {
 })
 
 // ============================================
-// GROUPING PER BATCH (REVISI BARU!)
+// GROUPING PER BATCH
 // ============================================
 const groupedBatches = computed(() => {
   const groups = {}
@@ -344,7 +344,7 @@ const closeDetailModal = () => {
 }
 
 // ============================================
-// MODAL QR
+// 🔥 MODAL QR (FULL REVISI)
 // ============================================
 const qrModal = ref({
   show: false,
@@ -355,7 +355,20 @@ const qrModal = ref({
 
 const showQR = async (cert) => {
   try {
-    const qrDataUrl = await QRCode.toDataURL(cert.verify_url, { width: 300 })
+    // 🔥 Gunakan base URL dari environment atau fallback
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://zakanel-frontend.pages.dev'
+    
+    // 🔥 URL verifikasi: prioritas dari database, fallback buat sendiri
+    let url = cert.verify_url
+    if (!url || url === '' || url.includes('localhost') || url.includes('127.0.0.1')) {
+      url = `${baseUrl}/verifikasi/valid?id=${cert.public_id}`
+      console.warn('⚠️ verify_url kosong/localhost, menggunakan fallback:', url)
+    }
+    
+    console.log('📱 Generating QR for URL:', url)
+
+    const qrDataUrl = await QRCode.toDataURL(url, { width: 300 })
+    
     qrModal.value = {
       show: true,
       qrData: qrDataUrl,
@@ -363,7 +376,8 @@ const showQR = async (cert) => {
       namaPeserta: cert.nama_peserta
     }
   } catch (error) {
-    console.error('Gagal generate QR:', error)
+    console.error('❌ Gagal generate QR:', error)
+    alert('❌ Gagal generate QR Code.')
   }
 }
 
