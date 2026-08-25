@@ -9,8 +9,9 @@ import os
 import qrcode
 import io
 import base64
+from web3 import Web3  
 
-# CONTRACT ABI (sama seperti sebelumnya)
+# CONTRACT ABI
 CONTRACT_ABI = [
   {"inputs": [], "stateMutability": "nonpayable", "type": "constructor"},
   {"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "wallet", "type": "address"}], "name": "PenerbitDicabut", "type": "event"},
@@ -31,12 +32,9 @@ CONTRACT_ABI = [
 
 sertifikat_bp = Blueprint('sertifikat', __name__, url_prefix='/api')
 
-# ===== HELPER: Format koordinat agar konsisten =====
 def fmt_coord(val):
-    """Format koordinat menjadi string dengan 7 desimal, tanpa trailing zeros yang tidak perlu"""
     try:
         f = float(val)
-        # Format dengan 7 desimal, lalu hilangkan trailing zeros
         s = f"{f:.7f}".rstrip('0').rstrip('.')
         return s
     except:
@@ -83,7 +81,7 @@ def get_all_sertifikat():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================
-# 🔥 PERBAIKAN UTAMA: VERIFY SERTIFIKAT
+# 🔥 VERIFY SERTIFIKAT - VERSI FINAL DENGAN ENCODING YANG BENAR
 # ============================================================
 @sertifikat_bp.route('/sertifikat/verify/<public_id>', methods=['GET'])
 def verify_sertifikat(public_id):
@@ -93,80 +91,60 @@ def verify_sertifikat(public_id):
         contract_address = current_app.contract_address
         contract = w3.eth.contract(address=contract_address, abi=CONTRACT_ABI)
 
-        # Bersihkan public_id dari strip jika ada
         raw_id = public_id.replace('-', '')
-        
-        # Format ulang menjadi UUID untuk query database
         formatted_public_id = f"{raw_id[:8]}-{raw_id[8:12]}-{raw_id[12:16]}-{raw_id[16:20]}-{raw_id[20:]}"
         
-        print(f"🔍 Public ID dari URL: {public_id}")
-        print(f"📝 Formatted ID: {formatted_public_id}")
+        print(f"🔍 Public ID: {public_id}")
+        print(f"📝 Raw ID: {raw_id}")
 
-        # ============================================================
-        # 🔥 STEP 2: Konversi public_id ke bytes32 SAMA seperti ethers.js
-        # ============================================================
-        # ethers.js mengirim string UTF-8, lalu di-pad kanan dengan \x00 hingga 32 byte
-        public_id_bytes = raw_id.encode('utf-8').ljust(32, b'\x00')
-        
-        # Debug: cetak hex untuk memastikan
-        print(f"📦 public_id_bytes (hex): {public_id_bytes.hex()}")
+        # 🔥 PERBAIKAN: Encoding yang benar (sama dengan ethers.js)
+        public_id_bytes = Web3.to_bytes(text=raw_id).ljust(32, b'\x00')
+        print(f"🔑 public_id_bytes (hex): {public_id_bytes.hex()}")
 
-        # Cek di blockchain
         onchain_batch_id = contract.functions.getBatchIdByPublicId(public_id_bytes).call()
         print(f"📊 onchain_batch_id: {onchain_batch_id}")
-        
-        if onchain_batch_id == 0:
-            # Coba alternatif encoding: mungkin frontend mengirim hex string sebagai bytes (pad kiri)
-            # Ini hanya fallback jika encoding UTF-8 tidak ditemukan
-            fallback_bytes = bytes.fromhex(raw_id).rjust(32, b'\x00')
-            onchain_batch_id = contract.functions.getBatchIdByPublicId(fallback_bytes).call()
-            print(f"📊 fallback onchain_batch_id: {onchain_batch_id}")
-            
-            if onchain_batch_id == 0:
-                return jsonify({
-                    'valid': False,
-                    'message': '❌ Sertifikat tidak terdaftar di blockchain.'
-                }), 200
 
-        # Ambil Merkle Root dari Blockchain
+        if onchain_batch_id == 0:
+            return jsonify({
+                'valid': False,
+                'message': '❌ Sertifikat tidak terdaftar di blockchain.'
+            }), 200
+
         onchain_merkle_root_bytes = contract.functions.merkleRoots(onchain_batch_id).call()
         onchain_merkle_root = '0x' + onchain_merkle_root_bytes.hex()
+        print(f"🌳 On-chain Merkle Root: {onchain_merkle_root}")
 
-        # 🔥 STEP 3: CEK DATABASE (UNTUK AMBIL METADATA)
         db_response = supabase.table('sertifikat').select('*').eq('public_id', formatted_public_id).execute()
         
-        if db_response.data:
-            data = db_response.data[0]
-            nama_peserta = data.get('nama_peserta', 'Tidak tersedia')
-            nama_kegiatan = data.get('nama_kegiatan', 'Tidak tersedia')
-            nama_lokasi = data.get('nama_lokasi', 'Tidak tersedia')
-            waktu_mulai = data.get('waktu_mulai')
-            waktu_selesai = data.get('waktu_selesai')
-            created_at = data.get('created_at')
-        else:
-            print(f"⚠️ Data database hilang untuk {formatted_public_id}, tapi blockchain valid!")
-            nama_peserta = 'Tidak tersedia (data dihapus)'
-            nama_kegiatan = 'Tidak tersedia (data dihapus)'
-            nama_lokasi = 'Tidak tersedia (data dihapus)'
-            waktu_mulai = None
-            waktu_selesai = None
-            created_at = None
+        if not db_response.data:
+            return jsonify({
+                'valid': False,
+                'message': '❌ Data sertifikat tidak ditemukan di database.'
+            }), 200
 
-        # ============================================================
-        # 🔥 STEP 4: KEMBALIKAN RESPONSE (SELALU VALID JIKA ADA DI BLOCKCHAIN)
-        # ============================================================
+        data = db_response.data[0]
+        db_merkle_root = data.get('merkle_root', '')
+        print(f"📦 DB Merkle Root: {db_merkle_root}")
+
+        if db_merkle_root != onchain_merkle_root:
+            print(f"❌ Merkle Root MISMATCH! DB: {db_merkle_root}, Onchain: {onchain_merkle_root}")
+            return jsonify({
+                'valid': False,
+                'message': '❌ Data sertifikat telah dimodifikasi'
+            }), 200
+
         return jsonify({
             'valid': True,
             'public_id': formatted_public_id,
             'batch_id': onchain_batch_id,
             'merkle_root': onchain_merkle_root,
-            'nama_peserta': nama_peserta,
-            'nama_kegiatan': nama_kegiatan,
-            'nama_lokasi': nama_lokasi,
-            'waktu_mulai': waktu_mulai,
-            'waktu_selesai': waktu_selesai,
-            'created_at': created_at,
-            'message': '✅ Sertifikat valid (Terverifikasi di Blockchain)'
+            'nama_peserta': data.get('nama_peserta', 'Tidak tersedia'),
+            'nama_kegiatan': data.get('nama_kegiatan', 'Tidak tersedia'),
+            'nama_lokasi': data.get('nama_lokasi', 'Tidak tersedia'),
+            'waktu_mulai': data.get('waktu_mulai'),
+            'waktu_selesai': data.get('waktu_selesai'),
+            'created_at': data.get('created_at'),
+            'message': '✅ Sertifikat valid (Data sesuai dengan blockchain)'
         })
 
     except Exception as e:
@@ -335,7 +313,7 @@ def prepare_sertifikat():
         if not cert_list:
             return jsonify({'success': False, 'error': 'Tidak ada data sertifikat'}), 400
 
-        # 🔥 Hitung Merkle Root dengan format KOORDINAT KONSISTEN
+        # Hitung Merkle Root
         hashes = []
         for cert in cert_list:
             required_fields = ['nama_peserta', 'nama_kegiatan', 'nama_lokasi', 'latitude', 'longitude']
@@ -352,7 +330,7 @@ def prepare_sertifikat():
         combined = ''.join(hashes)
         merkle_root = '0x' + hashlib.sha256(combined.encode()).hexdigest()
 
-        # 🔥 Insert Batch
+        # Insert Batch
         batch_id = int(datetime.now().timestamp() * 1000)
         try:
             supabase.table('batch_sertifikat').insert({
@@ -363,7 +341,7 @@ def prepare_sertifikat():
         except Exception as e:
             return jsonify({'success': False, 'error': f'Gagal insert batch: {str(e)}'}), 500
 
-        # 🔥 Insert Sertifikat
+        # Insert Sertifikat
         base_url = os.getenv('VERIFICATION_BASE_URL', 'https://zakanel-frontend.pages.dev')
         if base_url.endswith('/'):
             base_url = base_url[:-1]
