@@ -9,9 +9,10 @@ import os
 import qrcode
 import io
 import base64
-from web3 import Web3  
+from web3 import Web3
+from typing import List, Tuple
+from app.utils.merkle import fmt_coord, compute_leaf_hash, build_merkle_tree, verify_merkle_proof, encode_proof_for_db, decode_proof_from_db
 
-# CONTRACT ABI
 CONTRACT_ABI = [
   {"inputs": [], "stateMutability": "nonpayable", "type": "constructor"},
   {"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "wallet", "type": "address"}], "name": "PenerbitDicabut", "type": "event"},
@@ -32,15 +33,6 @@ CONTRACT_ABI = [
 
 sertifikat_bp = Blueprint('sertifikat', __name__, url_prefix='/api')
 
-def fmt_coord(val):
-    try:
-        f = float(val)
-        s = f"{f:.7f}".rstrip('0').rstrip('.')
-        return s
-    except:
-        return str(val)
-
-# ===== GET ALL SERTIFIKAT =====
 @sertifikat_bp.route('/sertifikat', methods=['GET'])
 def get_all_sertifikat():
     try:
@@ -80,9 +72,73 @@ def get_all_sertifikat():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ============================================================
-# 🔥 VERIFY SERTIFIKAT - VERSI FINAL DENGAN ENCODING YANG BENAR
-# ============================================================
+@sertifikat_bp.route('/sertifikat/debug/<public_id>', methods=['GET'])
+def debug_public_id(public_id):
+    try:
+        w3 = current_app.w3
+        contract_address = current_app.contract_address
+        contract = w3.eth.contract(address=contract_address, abi=CONTRACT_ABI)
+
+        raw_id = public_id.replace('-', '')
+        
+        results = {}
+        
+        encoded_utf8 = raw_id.encode('utf-8').ljust(32, b'\x00')
+        batch_id_utf8 = contract.functions.getBatchIdByPublicId(encoded_utf8).call()
+        results['UTF-8 + pad kanan'] = {
+            'bytes_hex': encoded_utf8.hex(),
+            'batch_id': batch_id_utf8
+        }
+        
+        if len(raw_id) % 2 == 0:
+            encoded_hex_left = bytes.fromhex(raw_id).rjust(32, b'\x00')
+        else:
+            encoded_hex_left = bytes.fromhex('0' + raw_id).rjust(32, b'\x00')
+        batch_id_hex_left = contract.functions.getBatchIdByPublicId(encoded_hex_left).call()
+        results['Hex + pad kiri'] = {
+            'bytes_hex': encoded_hex_left.hex(),
+            'batch_id': batch_id_hex_left
+        }
+        
+        if len(raw_id) % 2 == 0:
+            encoded_hex_right = bytes.fromhex(raw_id).ljust(32, b'\x00')
+        else:
+            encoded_hex_right = bytes.fromhex('0' + raw_id).ljust(32, b'\x00')
+        batch_id_hex_right = contract.functions.getBatchIdByPublicId(encoded_hex_right).call()
+        results['Hex + pad kanan'] = {
+            'bytes_hex': encoded_hex_right.hex(),
+            'batch_id': batch_id_hex_right
+        }
+        
+        keccak_text = Web3.keccak(text=raw_id)
+        batch_id_keccak_text = contract.functions.getBatchIdByPublicId(keccak_text).call()
+        results['keccak256(text)'] = {
+            'bytes_hex': keccak_text.hex(),
+            'batch_id': batch_id_keccak_text
+        }
+        
+        if len(raw_id) % 2 == 0:
+            hex_bytes = bytes.fromhex(raw_id)
+        else:
+            hex_bytes = bytes.fromhex('0' + raw_id)
+        keccak_hex = Web3.keccak(hex_bytes)
+        batch_id_keccak_hex = contract.functions.getBatchIdByPublicId(keccak_hex).call()
+        results['keccak256(hex_bytes)'] = {
+            'bytes_hex': keccak_hex.hex(),
+            'batch_id': batch_id_keccak_hex
+        }
+        
+        return jsonify({
+            'success': True,
+            'public_id': public_id,
+            'raw_id': raw_id,
+            'results': results,
+            'note': 'Cari metode dengan batch_id > 0, itu yang benar!'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @sertifikat_bp.route('/sertifikat/verify/<public_id>', methods=['GET'])
 def verify_sertifikat(public_id):
     try:
@@ -93,16 +149,35 @@ def verify_sertifikat(public_id):
 
         raw_id = public_id.replace('-', '')
         formatted_public_id = f"{raw_id[:8]}-{raw_id[8:12]}-{raw_id[12:16]}-{raw_id[16:20]}-{raw_id[20:]}"
-        
+
         print(f"🔍 Public ID: {public_id}")
         print(f"📝 Raw ID: {raw_id}")
 
-        # 🔥 PERBAIKAN: Encoding yang benar (sama dengan ethers.js)
-        public_id_bytes = Web3.to_bytes(text=raw_id).ljust(32, b'\x00')
-        print(f"🔑 public_id_bytes (hex): {public_id_bytes.hex()}")
+        encodings_to_try = [
+            ('UTF-8 + pad kanan', raw_id.encode('utf-8').ljust(32, b'\x00')),
+        ]
+        if len(raw_id) % 2 == 0:
+            encodings_to_try.append(('Hex + pad kiri', bytes.fromhex(raw_id).rjust(32, b'\x00')))
+            encodings_to_try.append(('Hex + pad kanan', bytes.fromhex(raw_id).ljust(32, b'\x00')))
+        else:
+            encodings_to_try.append(('Hex + pad kiri', bytes.fromhex('0' + raw_id).rjust(32, b'\x00')))
+            encodings_to_try.append(('Hex + pad kanan', bytes.fromhex('0' + raw_id).ljust(32, b'\x00')))
+        encodings_to_try.append(('keccak256(text)', Web3.keccak(text=raw_id)))
+        if len(raw_id) % 2 == 0:
+            hex_bytes = bytes.fromhex(raw_id)
+        else:
+            hex_bytes = bytes.fromhex('0' + raw_id)
+        encodings_to_try.append(('keccak256(hex_bytes)', Web3.keccak(hex_bytes)))
 
-        onchain_batch_id = contract.functions.getBatchIdByPublicId(public_id_bytes).call()
-        print(f"📊 onchain_batch_id: {onchain_batch_id}")
+        onchain_batch_id = 0
+        used_encoding = None
+        for name, encoded_bytes in encodings_to_try:
+            batch_id = contract.functions.getBatchIdByPublicId(encoded_bytes).call()
+            print(f"   🔑 {name}: {encoded_bytes.hex()} → batch_id={batch_id}")
+            if batch_id > 0:
+                onchain_batch_id = batch_id
+                used_encoding = name
+                break
 
         if onchain_batch_id == 0:
             return jsonify({
@@ -110,34 +185,52 @@ def verify_sertifikat(public_id):
                 'message': '❌ Sertifikat tidak terdaftar di blockchain.'
             }), 200
 
+        print(f"✅ Encoding yang berhasil: {used_encoding}")
+        print(f"📊 onchain_batch_id: {onchain_batch_id}")
+
         onchain_merkle_root_bytes = contract.functions.merkleRoots(onchain_batch_id).call()
-        onchain_merkle_root = '0x' + onchain_merkle_root_bytes.hex()
-        print(f"🌳 On-chain Merkle Root: {onchain_merkle_root}")
+        print(f"🌳 On-chain Merkle Root: {onchain_merkle_root_bytes.hex()}")
 
         db_response = supabase.table('sertifikat').select('*').eq('public_id', formatted_public_id).execute()
-        
-        if not db_response.data:
+        data = db_response.data[0] if db_response.data else None
+
+        if not data:
             return jsonify({
-                'valid': False,
-                'message': '❌ Data sertifikat tidak ditemukan di database.'
+                'valid': True,
+                'public_id': formatted_public_id,
+                'batch_id': onchain_batch_id,
+                'merkle_root': '0x' + onchain_merkle_root_bytes.hex(),
+                'message': '✅ Sertifikat valid di blockchain, detail data tidak tersedia di database.'
             }), 200
 
-        data = db_response.data[0]
-        db_merkle_root = data.get('merkle_root', '')
-        print(f"📦 DB Merkle Root: {db_merkle_root}")
+        leaf_bytes = compute_leaf_hash(
+            data.get('nama_peserta'),
+            data.get('nama_kegiatan'),
+            data.get('nama_lokasi'),
+            data.get('latitude'),
+            data.get('longitude')
+        )
 
-        if db_merkle_root != onchain_merkle_root:
-            print(f"❌ Merkle Root MISMATCH! DB: {db_merkle_root}, Onchain: {onchain_merkle_root}")
+        print(f"🧬 Leaf hash (hex): {leaf_bytes.hex()}")
+        print(f"📦 Proof from DB: {data.get('merkle_proof')}")
+
+        proof = decode_proof_from_db(data.get('merkle_proof', '[]'))
+        print(f"📦 Decoded proof: {proof}")
+
+        is_valid = verify_merkle_proof(leaf_bytes, proof, onchain_merkle_root_bytes)
+        print(f"✅ Verifikasi result: {is_valid}")
+
+        if not is_valid:
             return jsonify({
                 'valid': False,
-                'message': '❌ Data sertifikat telah dimodifikasi'
+                'message': '❌ Data sertifikat telah dimodifikasi.'
             }), 200
 
         return jsonify({
             'valid': True,
             'public_id': formatted_public_id,
             'batch_id': onchain_batch_id,
-            'merkle_root': onchain_merkle_root,
+            'merkle_root': '0x' + onchain_merkle_root_bytes.hex(),
             'nama_peserta': data.get('nama_peserta', 'Tidak tersedia'),
             'nama_kegiatan': data.get('nama_kegiatan', 'Tidak tersedia'),
             'nama_lokasi': data.get('nama_lokasi', 'Tidak tersedia'),
@@ -153,7 +246,6 @@ def verify_sertifikat(public_id):
         traceback.print_exc()
         return jsonify({'valid': False, 'error': str(e)}), 200
 
-# ===== KONFIRMASI BATCH =====
 @sertifikat_bp.route('/sertifikat/konfirmasi', methods=['POST'])
 def konfirmasi_batch():
     try:
@@ -197,7 +289,6 @@ def konfirmasi_batch():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ===== KELOLA PENERBIT =====
 @sertifikat_bp.route('/penerbit', methods=['GET'])
 def get_penerbit():
     try:
@@ -269,7 +360,6 @@ def activate_penerbit(id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ===== GENERATE QR CODE =====
 @sertifikat_bp.route('/sertifikat/generate-qr/<public_id>', methods=['GET'])
 def generate_qr(public_id):
     try:
@@ -291,7 +381,6 @@ def generate_qr(public_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ===== PREPARE SERTIFIKAT =====
 @sertifikat_bp.route('/sertifikat/prepare', methods=['POST'])
 def prepare_sertifikat():
     try:
@@ -313,24 +402,27 @@ def prepare_sertifikat():
         if not cert_list:
             return jsonify({'success': False, 'error': 'Tidak ada data sertifikat'}), 400
 
-        # Hitung Merkle Root
-        hashes = []
+        leaves = []
         for cert in cert_list:
             required_fields = ['nama_peserta', 'nama_kegiatan', 'nama_lokasi', 'latitude', 'longitude']
             for field in required_fields:
                 if not cert.get(field):
                     return jsonify({'success': False, 'error': f'Field {field} wajib diisi'}), 400
 
-            lat = fmt_coord(cert.get('latitude'))
-            lon = fmt_coord(cert.get('longitude'))
-            cert_string = f"{cert.get('nama_peserta')}{cert.get('nama_kegiatan')}{cert.get('nama_lokasi')}{lat}{lon}"
-            hash_val = hashlib.sha256(cert_string.encode()).hexdigest()
-            hashes.append(hash_val)
+            leaf = compute_leaf_hash(
+                cert.get('nama_peserta'),
+                cert.get('nama_kegiatan'),
+                cert.get('nama_lokasi'),
+                cert.get('latitude'),
+                cert.get('longitude')
+            )
+            leaves.append(leaf)
 
-        combined = ''.join(hashes)
-        merkle_root = '0x' + hashlib.sha256(combined.encode()).hexdigest()
+        root_bytes, all_proofs = build_merkle_tree(leaves)
+        merkle_root = '0x' + root_bytes.hex()
+        if merkle_root == '0x':
+            return jsonify({'success': False, 'error': 'Gagal membangun Merkle tree'}), 500
 
-        # Insert Batch
         batch_id = int(datetime.now().timestamp() * 1000)
         try:
             supabase.table('batch_sertifikat').insert({
@@ -341,16 +433,14 @@ def prepare_sertifikat():
         except Exception as e:
             return jsonify({'success': False, 'error': f'Gagal insert batch: {str(e)}'}), 500
 
-        # Insert Sertifikat
         base_url = os.getenv('VERIFICATION_BASE_URL', 'https://zakanel-frontend.pages.dev')
         if base_url.endswith('/'):
             base_url = base_url[:-1]
 
         results = []
-        for cert_data in cert_list:
+        for idx, cert_data in enumerate(cert_list):
             public_id = secrets.token_hex(16)
-            cert_string = f"{cert_data.get('nama_peserta')}{cert_data.get('nama_kegiatan')}{cert_data.get('nama_lokasi')}{datetime.now()}"
-            cert_hash = hashlib.sha256(cert_string.encode()).hexdigest()
+            proof_json = encode_proof_for_db(all_proofs[idx])
 
             new_cert = {
                 'public_id': public_id,
@@ -363,9 +453,9 @@ def prepare_sertifikat():
                 'waktu_mulai': cert_data.get('waktu_mulai', datetime.now().isoformat()),
                 'waktu_selesai': cert_data.get('waktu_selesai', datetime.now().isoformat()),
                 'keterangan': cert_data.get('keterangan', ''),
-                'cert_hash': cert_hash,
+                'cert_hash': hashlib.sha256(leaves[idx]).hexdigest(),
                 'merkle_root': merkle_root,
-                'merkle_proof': '[]',
+                'merkle_proof': proof_json,
                 'tx_hash': None,
                 'verify_url': f"{base_url}/verifikasi/valid?id={public_id}",
                 'penerbit_id': penerbit_id,
@@ -396,7 +486,6 @@ def prepare_sertifikat():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ===== GET DRAFT SERTIFIKAT =====
 @sertifikat_bp.route('/sertifikat/draft', methods=['GET'])
 def get_draft_sertifikat():
     try:
