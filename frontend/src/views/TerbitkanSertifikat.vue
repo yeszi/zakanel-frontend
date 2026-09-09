@@ -292,7 +292,7 @@ const closeEditModal = () => {
   editModal.value.index = null
 }
 
-// TAMBAH KE BATCH (sudah diperbaiki: reset keterangan)
+// TAMBAH KE BATCH
 const addToBatch = () => {
   if (!form.nama_peserta) { alert('❌ Nama peserta wajib diisi!'); return }
   if (!form.nama_kegiatan) { alert('❌ Nama kegiatan wajib diisi!'); return }
@@ -314,7 +314,6 @@ const addToBatch = () => {
     longitude: parseFloat(form.longitude)
   })
 
-  // Reset semua field termasuk keterangan
   form.nama_kegiatan = ''
   form.nama_lokasi = ''
   form.latitude = ''
@@ -322,7 +321,7 @@ const addToBatch = () => {
   form.waktu_mulai = ''
   form.waktu_selesai = ''
   form.nama_peserta = ''
-  form.keterangan = ''   // <-- PERBAIKAN: reset keterangan
+  form.keterangan = ''
 }
 
 const removeFromBatch = (idx) => {
@@ -394,7 +393,11 @@ const publishBatch = async () => {
       throw new Error('Merkle Root atau data sertifikat kosong!')
     }
 
-    const publicId = allData[0].public_id
+    const publicId = prepareRes.data.first_public_id
+    if (!publicId) {
+      throw new Error('Public ID tidak ditemukan dari response prepare')
+    }
+    console.log('🔑 Public ID yang akan didaftarkan di blockchain:', publicId)
 
     const txSuccess = await contract.simpanRoot(batchIdOnchain, merkleRoot, publicId)
     if (!txSuccess) {
