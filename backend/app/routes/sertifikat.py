@@ -122,7 +122,7 @@ def get_all_sertifikat():
 
 
 # ============================================
-# VERIFY SERTIFIKAT (PILIHAN A: ROOT + PROOF, TANPA MAPPING PUBLIC ID)
+# VERIFY SERTIFIKAT (FIX: pakai raw_id TANPA DASH)
 # ============================================
 @sertifikat_bp.route('/sertifikat/verify/<public_id>', methods=['GET'])
 def verify_sertifikat(public_id):
@@ -158,8 +158,6 @@ def verify_sertifikat(public_id):
                 'message': '❌ Batch ID tidak ditemukan.'
             }), 200
 
-        # PILIHAN A: langsung ambil root dari blockchain pakai batch_id dari DB.
-        # Tidak perlu cek getBatchIdByPublicId (mapping public_id → batch_id).
         try:
             onchain_merkle_root_bytes = contract.functions.getRoot(batch_id).call()
         except Exception as e:
@@ -180,13 +178,14 @@ def verify_sertifikat(public_id):
 
         print(f"🌳 On-chain Merkle Root: {onchain_merkle_root_with_prefix}")
 
-        # Hitung ulang leaf hash dari data di database
+        # 🔥 FIX: pakai raw_id (tanpa dash) untuk hash
         leaf_bytes = compute_leaf_hash(
             data.get('nama_peserta'),
             data.get('nama_kegiatan'),
             data.get('nama_lokasi'),
             data.get('latitude'),
-            data.get('longitude')
+            data.get('longitude'),
+            raw_id
         )
 
         print("=" * 60)
@@ -201,7 +200,6 @@ def verify_sertifikat(public_id):
         proof = decode_proof_from_db(data.get('merkle_proof', '[]'))
         print(f"📦 Decoded proof: {proof}")
 
-        # Verifikasi proof terhadap root on-chain
         is_valid = verify_merkle_proof(leaf_bytes, proof, onchain_merkle_root_bytes)
         print(f"✅ Verifikasi proof result: {is_valid}")
         print("=" * 60)
@@ -234,7 +232,7 @@ def verify_sertifikat(public_id):
 
 
 # ============================================
-# KONFIRMASI BATCH (JANGAN OVERWRITE PROOF)
+# KONFIRMASI BATCH
 # ============================================
 @sertifikat_bp.route('/sertifikat/konfirmasi', methods=['POST'])
 def konfirmasi_batch():
@@ -282,7 +280,6 @@ def konfirmasi_batch():
                 'batch_id': batch_id_onchain,
                 'status': 'published'
             }
-            # Hanya update merkle_proof jika frontend mengirim yang TIDAK kosong
             proof = cert.get('proof', [])
             if proof:
                 update_data['merkle_proof'] = json.dumps(proof)
@@ -297,7 +294,7 @@ def konfirmasi_batch():
 
 
 # ============================================
-# KELOLA PENERBIT (khusus admin)
+# KELOLA PENERBIT
 # ============================================
 @sertifikat_bp.route('/penerbit', methods=['GET'])
 def get_penerbit():
@@ -403,7 +400,7 @@ def generate_qr(public_id):
 
 
 # ============================================
-# PREPARE SERTIFIKAT (DENGAN PROOF + LEAF_INDEX)
+# PREPARE SERTIFIKAT (DENGAN PUBLIC_ID DI HASH)
 # ============================================
 @sertifikat_bp.route('/sertifikat/prepare', methods=['POST'])
 @require_role('admin', 'penerbit')
@@ -427,23 +424,31 @@ def prepare_sertifikat():
         if not cert_list:
             return jsonify({'success': False, 'error': 'Tidak ada data sertifikat'}), 400
 
-        leaves = []
+        # Validasi field wajib
         for cert in cert_list:
             required_fields = ['nama_peserta', 'nama_kegiatan', 'nama_lokasi', 'latitude', 'longitude']
             for field in required_fields:
                 if not cert.get(field):
                     return jsonify({'success': False, 'error': f'Field {field} wajib diisi'}), 400
 
+        # Buat public_id unik untuk SEMUA sertifikat dulu
+        public_ids = [secrets.token_hex(16) for _ in cert_list]
+
+        # Hitung leaf hash dengan public_id (tanpa dash)
+        leaves = []
+        for idx, cert in enumerate(cert_list):
             leaf = compute_leaf_hash(
                 cert.get('nama_peserta'),
                 cert.get('nama_kegiatan'),
                 cert.get('nama_lokasi'),
                 cert.get('latitude'),
-                cert.get('longitude')
+                cert.get('longitude'),
+                public_ids[idx]
             )
             leaves.append(leaf)
 
             print(f"🔹 Prepare - Nama: {cert.get('nama_peserta')}")
+            print(f"   Public ID: {public_ids[idx]}")
             print(f"   Latitude: {cert.get('latitude')} -> fmt: {fmt_coord(cert.get('latitude'))}")
             print(f"   Longitude: {cert.get('longitude')} -> fmt: {fmt_coord(cert.get('longitude'))}")
             print(f"   Leaf hash: {leaf.hex()}")
@@ -470,7 +475,7 @@ def prepare_sertifikat():
 
         results = []
         for idx, cert_data in enumerate(cert_list):
-            public_id = secrets.token_hex(16)
+            public_id = public_ids[idx]
             leaf = leaves[idx]
             proof_json = encode_proof_for_db(all_proofs[idx])
 
@@ -560,7 +565,7 @@ def get_draft_sertifikat():
 
 
 # ============================================
-# FIX PROOF (ADMIN ONLY)
+# FIX PROOF (ADMIN ONLY) - FIX: pakai public_id TANPA DASH
 # ============================================
 @sertifikat_bp.route('/sertifikat/fix-proof/<batch_id>', methods=['GET'])
 @require_role('admin')
@@ -580,12 +585,15 @@ def fix_proof(batch_id):
 
         leaves = []
         for cert in certs:
+            # 🔥 FIX: public_id dari DB ada dash, hapus dulu
+            public_id_clean = cert.get('public_id', '').replace('-', '')
             leaf = compute_leaf_hash(
                 cert.get('nama_peserta'),
                 cert.get('nama_kegiatan'),
                 cert.get('nama_lokasi'),
                 cert.get('latitude'),
-                cert.get('longitude')
+                cert.get('longitude'),
+                public_id_clean
             )
             leaves.append(leaf)
 
@@ -617,7 +625,7 @@ def fix_proof(batch_id):
 
 
 # ============================================
-# DEBUG FULL
+# DEBUG FULL - FIX: pakai raw_id TANPA DASH
 # ============================================
 @sertifikat_bp.route('/sertifikat/debug-full/<public_id>', methods=['GET'])
 def debug_full(public_id):
@@ -659,12 +667,14 @@ def debug_full(public_id):
         proof_for_this = proofs_reconstructed[idx]
         proof_from_db = decode_proof_from_db(data.get('merkle_proof', '[]'))
 
+        # 🔥 FIX: pakai raw_id (tanpa dash) untuk hash
         leaf_bytes = compute_leaf_hash(
             data.get('nama_peserta'),
             data.get('nama_kegiatan'),
             data.get('nama_lokasi'),
             data.get('latitude'),
-            data.get('longitude')
+            data.get('longitude'),
+            raw_id
         )
         leaf_hex = leaf_bytes.hex()
 
@@ -682,6 +692,7 @@ def debug_full(public_id):
                 'cert_hash_db': data.get('cert_hash'),
                 'merkle_proof_db': data.get('merkle_proof'),
             },
+            'raw_id_used_for_hash': raw_id,
             'leaf_hash_dihitung': leaf_hex,
             'cert_hash_sama': leaf_hex == data.get('cert_hash'),
             'all_cert_hashes_in_batch': all_cert_hashes,

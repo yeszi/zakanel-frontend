@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-let baseURL = import.meta.env.VITE_API_BASE_URL || 'https://struct-performed-alt-zus.trycloudflare.com'
+let baseURL = import.meta.env.VITE_API_BASE_URL || 'https://archives-tsunami-duty-catalog.trycloudflare.com'
 if (baseURL.endsWith('/')) {
   baseURL = baseURL.slice(0, -1)
 }

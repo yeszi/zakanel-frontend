@@ -169,21 +169,6 @@
         </form>
       </div>
     </div>
-
-    <!-- Modal QR Code -->
-    <div v-if="showQRModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-      <div class="bg-white rounded-xl p-6 max-w-lg w-full">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">📱 QR Code</h3>
-          <button @click="closeQRModal" class="text-gray-400">X</button>
-        </div>
-        <div v-if="selectedQR" class="text-center">
-          <img :src="selectedQR.qr_code" alt="QR" class="mx-auto w-64 h-64" />
-          <p class="mt-2 text-sm text-gray-600 break-all">🔗 {{ selectedQR.verify_url }}</p>
-        </div>
-        <button @click="closeQRModal" class="btn-secondary px-6 py-2 w-full mt-4">Tutup</button>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -231,10 +216,6 @@ const batch = ref([])
 const loading = ref(false)
 const publishing = ref(false)
 const loadingLocation = ref(false)
-
-const qrCodes = ref([])
-const showQRModal = ref(false)
-const selectedQR = ref(null)
 
 // LocalStorage
 const saveToLocalStorage = () => {
@@ -302,18 +283,29 @@ const addToBatch = () => {
   if (!form.waktu_mulai) { alert('❌ Waktu mulai wajib diisi!'); return }
   if (!form.waktu_selesai) { alert('❌ Waktu selesai wajib diisi!'); return }
 
-  const isDuplicate = batch.value.some(item => item.nama_peserta === form.nama_peserta)
+  const latNum = parseFloat(form.latitude)
+  const lonNum = parseFloat(form.longitude)
+
+  // Cek duplikat berdasarkan 5 field
+  const isDuplicate = batch.value.some(item =>
+    item.nama_peserta === form.nama_peserta &&
+    item.nama_kegiatan === form.nama_kegiatan &&
+    item.nama_lokasi === form.nama_lokasi &&
+    item.latitude === latNum &&
+    item.longitude === lonNum
+  )
   if (isDuplicate) {
-    alert(`⚠️ Data untuk "${form.nama_peserta}" sudah ada di antrean!`)
+    alert(`⚠️ Data dengan 5 field identik sudah ada di antrean!`)
     return
   }
 
   batch.value.push({
     ...form,
-    latitude: parseFloat(form.latitude),
-    longitude: parseFloat(form.longitude)
+    latitude: latNum,
+    longitude: lonNum
   })
 
+  // Reset form
   form.nama_kegiatan = ''
   form.nama_lokasi = ''
   form.latitude = ''
@@ -328,26 +320,6 @@ const removeFromBatch = (idx) => {
   if (confirm(`Hapus data "${batch.value[idx].nama_peserta}" dari antrean?`)) {
     batch.value.splice(idx, 1)
   }
-}
-
-const generateQRForSertifikat = async (publicId, index) => {
-  try {
-    const response = await api.get(`/sertifikat/generate-qr/${publicId}`)
-    if (response.data.success) {
-      qrCodes.value[index] = {
-        public_id: publicId,
-        qr_code: response.data.qr_code,
-        verify_url: response.data.verify_url
-      }
-    }
-  } catch (error) {
-    console.error('Error QR:', error)
-  }
-}
-
-const closeQRModal = () => {
-  showQRModal.value = false
-  selectedQR.value = null
 }
 
 const publishBatch = async () => {
@@ -411,20 +383,10 @@ const publishBatch = async () => {
       sertifikat_list: allData.map(i => ({ public_id: i.public_id, proof: [] }))
     })
 
-    qrCodes.value = []
-    for (let i = 0; i < allData.length; i++) {
-      await generateQRForSertifikat(allData[i].public_id, i)
-    }
-
-    if (qrCodes.value.length > 0) {
-      selectedQR.value = qrCodes.value[0]
-      showQRModal.value = true
-    }
-
     batch.value = []
     localStorage.removeItem('batch_data')
 
-    alert(`✅ ${allData.length} sertifikat berhasil diterbitkan!\n🔗 TX: ${contract.txHash.value.slice(0, 10)}...`)
+    alert(`✅ ${allData.length} sertifikat berhasil diterbitkan!\n🔗 TX: ${contract.txHash.value.slice(0, 10)}...\n\n📌 QR Code bisa dilihat di halaman Monitoring Data.`)
 
   } catch (error) {
     console.error('❌ Error:', error)
