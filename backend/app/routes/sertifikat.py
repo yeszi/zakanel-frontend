@@ -122,7 +122,7 @@ def get_all_sertifikat():
 
 
 # ============================================
-# VERIFY SERTIFIKAT (FIX: pakai raw_id TANPA DASH)
+# VERIFY SERTIFIKAT (8 VARIABEL)
 # ============================================
 @sertifikat_bp.route('/sertifikat/verify/<public_id>', methods=['GET'])
 def verify_sertifikat(public_id):
@@ -140,7 +140,7 @@ def verify_sertifikat(public_id):
 
         db_response = supabase.table('sertifikat').select(
             'batch_id, merkle_root, merkle_proof, nama_peserta, nama_kegiatan, nama_lokasi, '
-            'latitude, longitude, waktu_mulai, waktu_selesai, created_at, cert_hash'
+            'latitude, longitude, waktu_mulai, waktu_selesai, keterangan, created_at, cert_hash'
         ).eq('public_id', formatted_public_id).execute()
 
         if not db_response.data:
@@ -178,13 +178,16 @@ def verify_sertifikat(public_id):
 
         print(f"🌳 On-chain Merkle Root: {onchain_merkle_root_with_prefix}")
 
-        # 🔥 FIX: pakai raw_id (tanpa dash) untuk hash
+        # Hitung ulang leaf hash dengan 8 variabel + public_id
         leaf_bytes = compute_leaf_hash(
             data.get('nama_peserta'),
             data.get('nama_kegiatan'),
             data.get('nama_lokasi'),
             data.get('latitude'),
             data.get('longitude'),
+            data.get('waktu_mulai', ''),
+            data.get('waktu_selesai', ''),
+            data.get('keterangan', ''),
             raw_id
         )
 
@@ -193,6 +196,9 @@ def verify_sertifikat(public_id):
         print(f"📝 Nama Peserta: {data.get('nama_peserta')}")
         print(f"📝 Nama Kegiatan: {data.get('nama_kegiatan')}")
         print(f"📝 Nama Lokasi: {data.get('nama_lokasi')}")
+        print(f"📝 Waktu Mulai: {data.get('waktu_mulai')}")
+        print(f"📝 Waktu Selesai: {data.get('waktu_selesai')}")
+        print(f"📝 Keterangan: {data.get('keterangan')}")
         print(f"🧬 Leaf hash (hex): {leaf_bytes.hex()}")
         print(f"📦 cert_hash di DB: {data.get('cert_hash')}")
         print(f"📦 Apakah leaf hash == cert_hash? {leaf_bytes.hex() == data.get('cert_hash')}")
@@ -400,7 +406,7 @@ def generate_qr(public_id):
 
 
 # ============================================
-# PREPARE SERTIFIKAT (DENGAN PUBLIC_ID DI HASH)
+# PREPARE SERTIFIKAT (8 VARIABEL)
 # ============================================
 @sertifikat_bp.route('/sertifikat/prepare', methods=['POST'])
 @require_role('admin', 'penerbit')
@@ -424,17 +430,14 @@ def prepare_sertifikat():
         if not cert_list:
             return jsonify({'success': False, 'error': 'Tidak ada data sertifikat'}), 400
 
-        # Validasi field wajib
         for cert in cert_list:
             required_fields = ['nama_peserta', 'nama_kegiatan', 'nama_lokasi', 'latitude', 'longitude']
             for field in required_fields:
                 if not cert.get(field):
                     return jsonify({'success': False, 'error': f'Field {field} wajib diisi'}), 400
 
-        # Buat public_id unik untuk SEMUA sertifikat dulu
         public_ids = [secrets.token_hex(16) for _ in cert_list]
 
-        # Hitung leaf hash dengan public_id (tanpa dash)
         leaves = []
         for idx, cert in enumerate(cert_list):
             leaf = compute_leaf_hash(
@@ -443,14 +446,18 @@ def prepare_sertifikat():
                 cert.get('nama_lokasi'),
                 cert.get('latitude'),
                 cert.get('longitude'),
+                cert.get('waktu_mulai', ''),
+                cert.get('waktu_selesai', ''),
+                cert.get('keterangan', ''),
                 public_ids[idx]
             )
             leaves.append(leaf)
 
             print(f"🔹 Prepare - Nama: {cert.get('nama_peserta')}")
             print(f"   Public ID: {public_ids[idx]}")
-            print(f"   Latitude: {cert.get('latitude')} -> fmt: {fmt_coord(cert.get('latitude'))}")
-            print(f"   Longitude: {cert.get('longitude')} -> fmt: {fmt_coord(cert.get('longitude'))}")
+            print(f"   Waktu Mulai: {cert.get('waktu_mulai')}")
+            print(f"   Waktu Selesai: {cert.get('waktu_selesai')}")
+            print(f"   Keterangan: {cert.get('keterangan')}")
             print(f"   Leaf hash: {leaf.hex()}")
 
         root_bytes, all_proofs = build_merkle_tree(leaves)
@@ -565,7 +572,7 @@ def get_draft_sertifikat():
 
 
 # ============================================
-# FIX PROOF (ADMIN ONLY) - FIX: pakai public_id TANPA DASH
+# FIX PROOF (8 VARIABEL)
 # ============================================
 @sertifikat_bp.route('/sertifikat/fix-proof/<batch_id>', methods=['GET'])
 @require_role('admin')
@@ -585,7 +592,6 @@ def fix_proof(batch_id):
 
         leaves = []
         for cert in certs:
-            # 🔥 FIX: public_id dari DB ada dash, hapus dulu
             public_id_clean = cert.get('public_id', '').replace('-', '')
             leaf = compute_leaf_hash(
                 cert.get('nama_peserta'),
@@ -593,6 +599,9 @@ def fix_proof(batch_id):
                 cert.get('nama_lokasi'),
                 cert.get('latitude'),
                 cert.get('longitude'),
+                cert.get('waktu_mulai', ''),
+                cert.get('waktu_selesai', ''),
+                cert.get('keterangan', ''),
                 public_id_clean
             )
             leaves.append(leaf)
@@ -625,7 +634,7 @@ def fix_proof(batch_id):
 
 
 # ============================================
-# DEBUG FULL - FIX: pakai raw_id TANPA DASH
+# DEBUG FULL (8 VARIABEL)
 # ============================================
 @sertifikat_bp.route('/sertifikat/debug-full/<public_id>', methods=['GET'])
 def debug_full(public_id):
@@ -667,13 +676,15 @@ def debug_full(public_id):
         proof_for_this = proofs_reconstructed[idx]
         proof_from_db = decode_proof_from_db(data.get('merkle_proof', '[]'))
 
-        # 🔥 FIX: pakai raw_id (tanpa dash) untuk hash
         leaf_bytes = compute_leaf_hash(
             data.get('nama_peserta'),
             data.get('nama_kegiatan'),
             data.get('nama_lokasi'),
             data.get('latitude'),
             data.get('longitude'),
+            data.get('waktu_mulai', ''),
+            data.get('waktu_selesai', ''),
+            data.get('keterangan', ''),
             raw_id
         )
         leaf_hex = leaf_bytes.hex()
@@ -687,8 +698,9 @@ def debug_full(public_id):
                 'nama_lokasi': data.get('nama_lokasi'),
                 'latitude': data.get('latitude'),
                 'longitude': data.get('longitude'),
-                'latitude_type': str(type(data.get('latitude'))),
-                'longitude_type': str(type(data.get('longitude'))),
+                'waktu_mulai': data.get('waktu_mulai'),
+                'waktu_selesai': data.get('waktu_selesai'),
+                'keterangan': data.get('keterangan'),
                 'cert_hash_db': data.get('cert_hash'),
                 'merkle_proof_db': data.get('merkle_proof'),
             },

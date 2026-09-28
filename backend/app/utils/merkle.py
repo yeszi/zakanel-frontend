@@ -10,10 +10,27 @@ def fmt_coord(val):
     except:
         return str(val)
 
-def compute_leaf_hash(nama_peserta, nama_kegiatan, nama_lokasi, lat, lon, public_id=''):
+def compute_leaf_hash(nama_peserta, nama_kegiatan, nama_lokasi, lat, lon,
+                      waktu_mulai='', waktu_selesai='', keterangan='', public_id=''):
     lat_str = lat if isinstance(lat, str) else fmt_coord(lat)
     lon_str = lon if isinstance(lon, str) else fmt_coord(lon)
-    data = f"{nama_peserta}{nama_kegiatan}{nama_lokasi}{lat_str}{lon_str}{public_id}"
+
+    waktu_mulai_str = str(waktu_mulai) if waktu_mulai is not None else ''
+    waktu_selesai_str = str(waktu_selesai) if waktu_selesai is not None else ''
+    keterangan_str = str(keterangan) if keterangan is not None else ''
+    public_id_str = str(public_id) if public_id is not None else ''
+
+    data = (
+        f"{nama_peserta}"
+        f"{nama_kegiatan}"
+        f"{nama_lokasi}"
+        f"{lat_str}"
+        f"{lon_str}"
+        f"{waktu_mulai_str}"
+        f"{waktu_selesai_str}"
+        f"{keterangan_str}"
+        f"{public_id_str}"
+    )
     return hashlib.sha256(data.encode('utf-8')).digest()
 
 def build_merkle_tree(leaves: List[bytes]) -> Tuple[bytes, List[List[Tuple[bytes, str]]]]:
