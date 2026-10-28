@@ -16,17 +16,19 @@ class Config:
     SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY')
 
     # JWT — WAJIB diisi di .env (minimal 32 karakter acak).
-    # Contoh membuat secret:  python -c "import secrets; print(secrets.token_hex(32))"
     JWT_SECRET = os.getenv('JWT_SECRET', '')
     JWT_ALGORITHM = 'HS256'
     JWT_EXPIRATION_MINUTES = int(os.getenv('JWT_EXPIRATION_MINUTES', '60'))
 
     # CORS — daftar origin frontend yang diizinkan, dipisah koma
-    # Contoh: https://zakanel-frontend.pages.dev,http://localhost:5173
-    CORS_ORIGINS = [o.strip() for o in os.getenv('CORS_ORIGINS', 'http://localhost:5173').split(',') if o.strip()]
+    CORS_ORIGINS = [o.strip().rstrip('/') for o in os.getenv(
+        'CORS_ORIGINS',
+        'http://localhost:5173,http://localhost:3000,https://zakanel-frontend.pages.dev'
+    ).split(',') if o.strip()]
+    # Opsional: izinkan juga URL preview Cloudflare Pages
+    CORS_ORIGIN_REGEX = os.getenv('CORS_ORIGIN_REGEX', r'^https://([a-z0-9-]+\.)?zakanel-frontend\.pages\.dev$')
 
-    # Izinkan endpoint /api/auth/register tanpa login HANYA untuk membuat admin pertama.
-    # Setelah admin pertama dibuat, ubah ke 0.
+    # Izinkan /api/auth/register HANYA untuk membuat admin pertama.
     ALLOW_BOOTSTRAP_ADMIN = os.getenv('ALLOW_BOOTSTRAP_ADMIN', '0') == '1'
 
     # Blockchain - Ethereum

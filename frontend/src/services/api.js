@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-let baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+let baseURL = import.meta.env.VITE_API_BASE_URL || 'https://begins-occupational-bloomberg-tire.trycloudflare.com'
 if (baseURL.endsWith('/')) baseURL = baseURL.slice(0, -1)
 
 const api = axios.create({

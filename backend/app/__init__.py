@@ -1,3 +1,4 @@
+import re
 from flask import Flask, jsonify
 from flask_cors import CORS
 from supabase import create_client
@@ -14,8 +15,14 @@ def create_app():
         raise RuntimeError('JWT_SECRET belum diisi di .env (minimal 32 karakter).')
 
     # CORS hanya untuk origin frontend yang terdaftar
-    CORS(app, resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}},
-         allow_headers=['Content-Type', 'Authorization'])
+    origins = list(app.config['CORS_ORIGINS'])
+    if app.config.get('CORS_ORIGIN_REGEX'):
+        origins.append(re.compile(app.config['CORS_ORIGIN_REGEX']))
+    CORS(app, resources={r"/api/*": {"origins": origins}},
+         allow_headers=['Content-Type', 'Authorization'],
+         methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+         max_age=600)
+    print('CORS origins diizinkan:', app.config['CORS_ORIGINS'], app.config.get('CORS_ORIGIN_REGEX'))
 
     # === KONEKSI ===
     app.supabase = create_client(app.config['SUPABASE_URL'], app.config['SUPABASE_SERVICE_KEY'])
