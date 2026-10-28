@@ -43,11 +43,11 @@
             </svg>
           </div>
           <div class="flex items-center space-x-3">
-            <button @click="showAuditChain" class="btn-secondary flex items-center space-x-2">
+            <button @click="showAuditChain" :disabled="auditing" class="btn-secondary flex items-center space-x-2 disabled:opacity-50">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
               </svg>
-              <span>+ Audit Rantai</span>
+              <span>{{ auditing ? 'Memeriksa...' : 'Audit Rantai' }}</span>
             </button>
             <button @click="refreshData" class="btn-secondary flex items-center space-x-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,6 +128,14 @@
                           class="text-green-600 hover:text-green-800 text-xs font-medium"
                         >
                           📱 QR
+                        </button>
+                        <button
+                          @click="downloadPdf(cert)"
+                          :disabled="!cert.tx_hash || downloading === cert.public_id"
+                          class="text-purple-600 hover:text-purple-800 text-xs font-medium disabled:opacity-40"
+                          title="Unduh sertifikat PDF"
+                        >
+                          {{ downloading === cert.public_id ? '⏳' : '📄 PDF' }}
                         </button>
                       </div>
                     </td>
@@ -258,6 +266,45 @@
         </div>
       </div>
     </div>
+
+    <!-- MODAL AUDIT RANTAI (konsistensi off-chain vs on-chain) -->
+    <div v-if="auditModal.show" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" @click.self="auditModal.show = false">
+      <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] overflow-y-auto p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-800">🔗 Audit Rantai: Off-chain vs On-chain</h3>
+          <button @click="auditModal.show = false" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <div v-if="auditModal.data" class="mb-4 p-3 rounded-lg border"
+             :class="auditModal.data.total_valid === auditModal.data.total_sertifikat ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'">
+          <p class="font-semibold">
+            {{ auditModal.data.total_valid === auditModal.data.total_sertifikat ? '✅ Seluruh data konsisten dengan blockchain' : '❌ Ditemukan data yang tidak konsisten' }}
+          </p>
+          <p class="text-sm">{{ auditModal.data.total_batch }} batch · {{ auditModal.data.total_valid }} / {{ auditModal.data.total_sertifikat }} sertifikat valid</p>
+        </div>
+        <p v-if="auditModal.error" class="text-red-600 text-sm mb-3">{{ auditModal.error }}</p>
+        <table v-if="auditModal.data" class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-gray-500 uppercase border-b">
+              <th class="py-2 pr-3">Batch</th><th class="py-2 pr-3">Kegiatan</th><th class="py-2 pr-3">Root On-chain</th>
+              <th class="py-2 pr-3">Root Rekonstruksi DB</th><th class="py-2 pr-3">Root</th><th class="py-2 pr-3">Valid</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="b in auditModal.data.batches" :key="b.batch_id" class="border-b align-top">
+              <td class="py-2 pr-3 font-mono text-xs">{{ b.batch_id }}</td>
+              <td class="py-2 pr-3">{{ b.nama_kegiatan }}</td>
+              <td class="py-2 pr-3 font-mono text-xs">{{ short(b.root_onchain) }}</td>
+              <td class="py-2 pr-3 font-mono text-xs">{{ short(b.root_rekonstruksi) }}</td>
+              <td class="py-2 pr-3">{{ b.root_cocok ? '✅ cocok' : '❌ beda' }}</td>
+              <td class="py-2 pr-3">
+                {{ b.sertifikat_valid }}/{{ b.jumlah }}
+                <div v-for="r in b.sertifikat_rusak" :key="r.public_id" class="text-xs text-red-600">✗ {{ r.nama_peserta }}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -356,7 +403,8 @@ const qrModal = ref({
 const showQR = async (cert) => {
   try {
     // 🔥 Gunakan base URL dari environment atau fallback
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://zakanel-frontend.pages.dev'
+    // URL verifikasi harus mengarah ke FRONTEND (bukan alamat API)
+    const baseUrl = window.location.origin
     
     // 🔥 URL verifikasi: prioritas dari database, fallback buat sendiri
     let url = cert.verify_url
@@ -402,8 +450,38 @@ const formatDate = (date) => {
 // ============================================
 // FUNGSI LAINNYA
 // ============================================
-const showAuditChain = () => {
-  alert('🔗 Fitur Audit Rantai\n\nMenampilkan seluruh riwayat transaksi blockchain untuk sertifikat terpilih.')
+// Audit rantai: bandingkan Merkle Root rekonstruksi DB dengan Merkle Root di smart contract
+const auditing = ref(false)
+const auditModal = ref({ show: false, data: null, error: '' })
+const short = (h) => (h ? `${h.slice(0, 10)}…${h.slice(-6)}` : '-')
+const showAuditChain = async () => {
+  auditing.value = true
+  auditModal.value = { show: true, data: null, error: '' }
+  try {
+    const res = await api.get('/sertifikat/batch-audit')
+    auditModal.value.data = res.data
+  } catch (err) {
+    auditModal.value.error = err.response?.data?.error || 'Gagal melakukan audit'
+  }
+  auditing.value = false
+}
+
+// Unduh sertifikat PDF (berisi QR Code verifikasi)
+const downloading = ref('')
+const downloadPdf = async (cert) => {
+  downloading.value = cert.public_id
+  try {
+    const res = await api.get(`/sertifikat/${cert.public_id}/pdf`, { responseType: 'blob' })
+    const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Sertifikat_${(cert.nama_peserta || 'peserta').replace(/[^a-z0-9]+/gi, '_')}.pdf`
+    document.body.appendChild(a); a.click(); a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } catch (err) {
+    alert('❌ Gagal mengunduh sertifikat')
+  }
+  downloading.value = ''
 }
 
 const refreshData = () => {

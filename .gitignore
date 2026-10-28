@@ -1,9 +1,9 @@
-// rahasia adalah
+# rahasia adalah
 *.env
 *.env.local
 *.env.*.local
 
-// backend
+# backend
 backend/venv/
 backend/__pycache__/
 backend/*.pyc
@@ -11,7 +11,7 @@ backend/.pytest_cache/
 backend/.coverage
 backend/instance/
 
-// frontend dan blockchainnya
+# frontend dan blockchainnya
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
@@ -21,12 +21,15 @@ blockchain/artifacts/
 blockchain/coverage/
 blockchain/.env
 
-// dockernya
+# dockernya
 *.pid
 *.log
 
-// os(windows) dan editor
+# os(windows) dan editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+# pengujian live (berisi private key & hasil)
+backend/uji_live/.env.uji
+backend/uji_live/*.pdf

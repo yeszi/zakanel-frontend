@@ -2,6 +2,18 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '../services/api'
 
+// Membaca payload JWT (tanpa verifikasi; verifikasi tetap dilakukan server)
+export const decodeToken = (token) => {
+  try {
+    const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(part.padEnd(part.length + (4 - part.length % 4) % 4, '=')))
+  } catch (e) { return null }
+}
+export const isTokenValid = (token) => {
+  const p = token && decodeToken(token)
+  return !!(p && p.exp && p.exp * 1000 > Date.now())
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const token = ref(null)
@@ -63,18 +75,24 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = () => {
+    const oldToken = token.value || localStorage.getItem('token')
     user.value = null
     token.value = null
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    // catat LOGOUT di audit log (tidak ditunggu, tidak mengganggu redirect)
+    if (oldToken) api.post('/auth/logout', null, { headers: { Authorization: `Bearer ${oldToken}` } }).catch(() => {})
   }
 
   const initAuth = () => {
     const savedToken = localStorage.getItem('token')
     const savedUser = localStorage.getItem('user')
-    if (savedToken && savedUser) {
+    if (savedToken && savedUser && isTokenValid(savedToken)) {
       token.value = savedToken
       user.value = JSON.parse(savedUser)
+    } else {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
     }
   }
 
@@ -103,17 +121,17 @@ export const usePublisherStore = defineStore('publisher', () => {
   const allPublishers = computed(() => publishers.value)
   const totalActive = computed(() => publishers.value.filter(p => p.status === 'active' || p.is_active === true).length)
 
-  const revokePublisher = async (id) => {
+  const revokePublisher = async (id, txHash) => {
     try {
-      await api.post(`/penerbit/${id}/revoke`)
+      await api.post(`/penerbit/${id}/revoke`, { tx_hash: txHash })
       await refreshData()
       return true
     } catch (error) { return false }
   }
 
-  const activatePublisher = async (id) => {
+  const activatePublisher = async (id, txHash) => {
     try {
-      await api.post(`/penerbit/${id}/activate`)
+      await api.post(`/penerbit/${id}/activate`, { tx_hash: txHash })
       await refreshData()
       return true
     } catch (error) { return false }

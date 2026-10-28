@@ -7,6 +7,7 @@
         <router-link to="/admin" class="block px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium">Dashboard</router-link>
         <router-link to="/admin/tambah-penerbit" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">(+) Tambahkan Penerbit</router-link>
         <router-link to="/admin/data-penerbit" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">(=) Data Penerbit</router-link>
+        <router-link to="/admin/audit-log" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">(≡) Audit Log</router-link>
       </nav>
       <button @click="logout" class="block w-full text-left px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors">Logout</button>
     </div>

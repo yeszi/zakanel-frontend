@@ -8,3 +8,5 @@ bcrypt
 PyJWT
 qrcode
 Pillow
+reportlab
+gunicorn

@@ -8,6 +8,8 @@ import TerbitkanSertifikat from '../views/TerbitkanSertifikat.vue'
 import MonitoringData from '../views/MonitoringData.vue'
 import VerifikasiValid from '../views/VerifikasiValid.vue'
 import VerifikasiInvalid from '../views/VerifikasiInvalid.vue'
+import AuditLog from '../views/AuditLog.vue'
+import { isTokenValid } from '../store/auth'
 
 const routes = [
   {
@@ -20,6 +22,12 @@ const routes = [
     path: '/admin',
     name: 'AdminDashboard',
     component: AdminDashboard,
+    meta: { requiresAuth: true, role: 'admin' }
+  },
+  {
+    path: '/admin/audit-log',
+    name: 'AuditLog',
+    component: AuditLog,
     meta: { requiresAuth: true, role: 'admin' }
   },
   {
@@ -79,7 +87,13 @@ const router = createRouter({
 
 // Navigation Guard (Cek Auth)
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
+  let token = localStorage.getItem('token')
+  if (token && !isTokenValid(token)) {
+    // token kedaluwarsa -> paksa login ulang
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    token = null
+  }
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const requiresAuth = to.meta.requiresAuth
   const requiredRole = to.meta.role

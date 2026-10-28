@@ -1,52 +1,36 @@
 import axios from 'axios'
 
-let baseURL = import.meta.env.VITE_API_BASE_URL || 'https://rentals-greetings-recorded-shows.trycloudflare.com'
-if (baseURL.endsWith('/')) {
-  baseURL = baseURL.slice(0, -1)
-}
+let baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+if (baseURL.endsWith('/')) baseURL = baseURL.slice(0, -1)
 
 const api = axios.create({
-  baseURL: baseURL,
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 })
 
-// Interceptor Request
+// Kirim HANYA token JWT. Peran & ID pengguna dibaca server dari token,
+// bukan dari header yang bisa dipalsukan (X-User-Role / X-User-ID sudah dihapus).
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
-  const userStr = localStorage.getItem('user')
-  let user = null
-
-  if (userStr) {
-    try { user = JSON.parse(userStr) } catch (e) {}
-  }
-
   if (token) config.headers.Authorization = `Bearer ${token}`
-
-  if (user && user.id) {
-    config.headers['X-User-ID'] = user.id
-    config.headers['X-User-Role'] = user.role || 'penerbit'
-  }
-
-  // Otomatis kasih prefix /api biar rapi
   if (config.url && !config.url.startsWith('/api')) {
-    config.url = '/api' + (config.url.startsWith('/') ? '' : '/') + config.url;
+    config.url = '/api' + (config.url.startsWith('/') ? '' : '/') + config.url
   }
-
   return config
 })
 
 api.interceptors.response.use(
-  (res) => {
-    return res
-  },
+  (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const status = err.response?.status
+    const isLogin = err.config?.url?.includes('/auth/login')
+    // 401 = token tidak ada/kedaluwarsa/tidak valid; 403 karena akun dinonaktifkan
+    const inactive = status === 403 && /dinonaktifkan/i.test(err.response?.data?.error || '')
+    if (!isLogin && (status === 401 || inactive)) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      if (window.location.pathname !== '/') {
-        window.location.href = '/'
-      }
+      if (window.location.pathname !== '/') window.location.href = '/'
     }
     return Promise.reject(err)
   }

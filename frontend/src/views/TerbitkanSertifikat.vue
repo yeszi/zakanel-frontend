@@ -348,9 +348,15 @@ const publishBatch = async () => {
     const penerbitId = authStore.user?.id
     if (!penerbitId) throw new Error('ID penerbit tidak ditemukan!')
 
+    // Pastikan wallet MetaMask = wallet yang terdaftar untuk akun ini
+    const registered = (authStore.user?.wallet_address || '').toLowerCase()
+    if (registered && walletAddress.value.toLowerCase() !== registered) {
+      throw new Error(`Wallet MetaMask aktif (${walletAddress.value}) berbeda dengan wallet terdaftar (${authStore.user.wallet_address}). Ganti akun di MetaMask.`)
+    }
+
+    // penerbit_id tidak dikirim lagi: server membacanya dari token JWT
     const prepareRes = await api.post('/sertifikat/prepare', {
-      sertifikat_list: batch.value,
-      penerbit_id: penerbitId
+      sertifikat_list: batch.value
     })
 
     if (!prepareRes.data.success) {

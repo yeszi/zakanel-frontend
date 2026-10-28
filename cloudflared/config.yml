@@ -1,6 +1,19 @@
+# Konfigurasi Cloudflare Tunnel (named tunnel) untuk BACKEND.
+#
+# Catatan penting:
+#  - "hostname" ditulis TANPA https:// dan harus memakai domain yang dikelola di akun Cloudflare Anda,
+#    misalnya api.domainanda.com. Domain *.pages.dev milik frontend TIDAK bisa diarahkan ke backend.
+#  - Frontend tetap di Cloudflare Pages (https://zakanel-frontend.pages.dev) dan memanggil backend
+#    melalui VITE_API_BASE_URL=https://api.domainanda.com
+#
+# Jika belum punya domain, untuk demo cukup pakai quick tunnel (URL berubah setiap dijalankan):
+#    cloudflared tunnel --url http://localhost:5000
+# lalu isi VITE_API_BASE_URL dengan URL *.trycloudflare.com yang muncul, dan tambahkan
+# URL frontend ke CORS_ORIGINS di backend/.env.
+
 tunnel: <TUNNEL_ID>
 credentials-file: /etc/cloudflared/credentials.json
 ingress:
-  - hostname: https://zakanel-frontend.pages.dev
-    service: http://backend:5000
+  - hostname: api.domainanda.com
+    service: http://localhost:5000
   - service: http_status:404

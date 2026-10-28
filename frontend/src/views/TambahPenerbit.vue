@@ -9,6 +9,7 @@
         <router-link to="/admin" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Dashboard</router-link>
         <router-link to="/admin/tambah-penerbit" class="block px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium">(+) Tambah Penerbit</router-link>
         <router-link to="/admin/data-penerbit" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">(=) Data Penerbit</router-link>
+        <router-link to="/admin/audit-log" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">(≡) Audit Log</router-link>
       </nav>
       
       <button @click="logout" class="block w-full text-left px-3 py-2 rounded-lg text-red-600 hover:bg-red-50">Logout</button>
@@ -60,7 +61,7 @@
             </div>
             <div>
               <label class="form-label">password</label>
-              <input v-model="form.password" type="password" class="form-input w-full" required />
+              <input v-model="form.password" type="password" class="form-input w-full" minlength="8" required />
             </div>
             <div>
               <label class="form-label">role</label>
@@ -128,33 +129,28 @@ const handleSubmit = async () => {
   txHash.value = ''
 
   try {
-    // STEP 1: Simpan ke database
-    const res = await api.post('/penerbit', form.value)
-    if (!res.data.success) {
-      error.value = '❌ ' + (res.data.message || 'Gagal simpan')
-      loading.value = false
-      return
-    }
+    if (!isConnected.value) await contract.connectWallet()
+    if (!isConnected.value) throw new Error('Hubungkan MetaMask (wallet admin) terlebih dahulu.')
 
-    // STEP 2: Daftarkan ke blockchain (via MetaMask)
+    // STEP 1: cek username & wallet belum dipakai SEBELUM bayar gas fee
+    await api.get('/penerbit/check', {
+      params: { username: form.value.username, wallet_address: form.value.wallet_address }
+    })
+
+    // STEP 2: daftarkan wallet ke smart contract (MetaMask, gas fee)
     const txSuccess = await contract.tambahPenerbit(form.value.wallet_address)
-    if (!txSuccess) {
-      error.value = '❌ Gagal di blockchain: ' + contract.error.value
-      loading.value = false
-      return
-    }
-
-    // STEP 3: SUKSES!
+    if (!txSuccess) throw new Error('Gagal di blockchain: ' + contract.error.value)
     txHash.value = contract.txHash.value
-    success.value = '✅ Penerbit berhasil ditambahkan ke database & blockchain!'
 
-    // Reset form
+    // STEP 3: simpan ke database; backend memverifikasi tx_hash di blockchain
+    const res = await api.post('/penerbit', { ...form.value, tx_hash: txHash.value })
+    if (!res.data.success) throw new Error(res.data.error || 'Gagal menyimpan penerbit')
+
+    success.value = '✅ Penerbit berhasil ditambahkan ke blockchain & database!'
     form.value = { username: '', password: '', role: 'penerbit', wallet_address: '', nama_lengkap: '' }
-
   } catch (err) {
-    error.value = '❌ Gagal: ' + err.message
+    error.value = '❌ ' + (err.response?.data?.error || err.message)
   }
-
   loading.value = false
 }
 

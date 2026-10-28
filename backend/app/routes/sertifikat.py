@@ -1,724 +1,348 @@
 from flask import Blueprint, request, jsonify, current_app
-from flask_cors import CORS
 from datetime import datetime
-import json
-import hashlib
-import secrets
-import bcrypt
-import os
-import qrcode
-import io
 import base64
-from web3 import Web3
-from typing import List, Tuple
-from app.utils.merkle import fmt_coord, compute_leaf_hash, build_merkle_tree, verify_merkle_proof, encode_proof_for_db, decode_proof_from_db
+import io
+import json
+import secrets
 
-CONTRACT_ABI = [
-  {"inputs": [], "stateMutability": "nonpayable", "type": "constructor"},
-  {"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "wallet", "type": "address"}], "name": "PenerbitDicabut", "type": "event"},
-  {"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "wallet", "type": "address"}], "name": "PenerbitDitambahkan", "type": "event"},
-  {"anonymous": False, "inputs": [{"indexed": True, "internalType": "uint256", "name": "batchId", "type": "uint256"}, {"indexed": False, "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32"}], "name": "RootDisimpan", "type": "event"},
-  {"anonymous": False, "inputs": [{"indexed": True, "internalType": "bytes32", "name": "publicId", "type": "bytes32"}, {"indexed": False, "internalType": "uint256", "name": "batchId", "type": "uint256"}], "name": "PublicIdTerdaftar", "type": "event"},
-  {"inputs": [], "name": "admin", "outputs": [{"internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"},
-  {"inputs": [{"internalType": "address", "name": "_wallet", "type": "address"}], "name": "cabutPenerbit", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-  {"inputs": [{"internalType": "bytes32", "name": "_publicId", "type": "bytes32"}], "name": "getBatchIdByPublicId", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
-  {"inputs": [{"internalType": "uint256", "name": "_batchId", "type": "uint256"}], "name": "getRoot", "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}], "stateMutability": "view", "type": "function"},
-  {"inputs": [{"internalType": "address", "name": "_wallet", "type": "address"}], "name": "isPenerbitActive", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "view", "type": "function"},
-  {"inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "name": "merkleRoots", "outputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}], "stateMutability": "view", "type": "function"},
-  {"inputs": [{"internalType": "address", "name": "", "type": "address"}], "name": "penerbitAktif", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "view", "type": "function"},
-  {"inputs": [{"internalType": "bytes32", "name": "", "type": "bytes32"}], "name": "publicIdToBatchId", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
-  {"inputs": [{"internalType": "uint256", "name": "_batchId", "type": "uint256"}, {"internalType": "bytes32", "name": "_merkleRoot", "type": "bytes32"}, {"internalType": "bytes32", "name": "_publicId", "type": "bytes32"}], "name": "simpanRoot", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-  {"inputs": [{"internalType": "address", "name": "_wallet", "type": "address"}], "name": "tambahPenerbit", "outputs": [], "stateMutability": "nonpayable", "type": "function"}
-]
+import qrcode
 
-sertifikat_bp = Blueprint('sertifikat', __name__, url_prefix='/api')
+from app.utils.auth_helper import token_required, current_user, ROLE_ADMIN, ROLE_PENERBIT
+from app.utils.audit import log_audit
+from app.utils.chain import get_contract, verify_root_tx, is_penerbit_active_onchain, is_valid_address
+from app.utils.merkle import (fmt_coord, compute_leaf_hash, build_merkle_tree, verify_merkle_proof,
+                              encode_proof_for_db, decode_proof_from_db)
+
+sertifikat_bp = Blueprint('sertifikat', __name__, url_prefix='/api/sertifikat')
+
+REQUIRED_FIELDS = ['nama_peserta', 'nama_kegiatan', 'nama_lokasi', 'latitude', 'longitude',
+                   'waktu_mulai', 'waktu_selesai']
+MAX_BATCH = 500
+
+LIST_FIELDS = ('id', 'public_id', 'batch_id', 'nama_peserta', 'nama_kegiatan', 'nama_lokasi', 'latitude',
+               'longitude', 'waktu_mulai', 'waktu_selesai', 'keterangan', 'cert_hash', 'merkle_root',
+               'tx_hash', 'verify_url', 'created_at', 'status', 'penerbit_id')
 
 
-def require_role(*allowed_roles):
-    def decorator(f):
-        def wrapper(*args, **kwargs):
-            user_role = request.headers.get('X-User-Role')
-            if user_role not in allowed_roles:
-                return jsonify({'success': False, 'error': 'Akses ditolak: role tidak sesuai'}), 403
-            return f(*args, **kwargs)
-        wrapper.__name__ = f.__name__
-        return wrapper
-    return decorator
+def _base_url():
+    return current_app.config['VERIFICATION_BASE_URL'].rstrip('/')
 
 
-def verify_tx_on_chain(w3, contract, contract_address, tx_hash, expected_batch_id, expected_merkle_root):
-    try:
-        receipt = w3.eth.get_transaction_receipt(tx_hash)
-    except Exception:
-        return False, "Transaksi tidak ditemukan di jaringan (tx_hash tidak valid atau belum ter-mining)."
-
-    if receipt is None:
-        return False, "Transaksi belum ter-mining."
-
-    if receipt.status != 1:
-        return False, "Transaksi gagal (revert) di blockchain."
-
-    if receipt.to is None or receipt.to.lower() != contract_address.lower():
-        return False, "Transaksi tidak ditujukan ke smart contract yang benar."
-
-    try:
-        events = contract.events.RootDisimpan().process_receipt(receipt)
-    except Exception as e:
-        return False, f"Gagal membaca event RootDisimpan dari transaksi: {str(e)}"
-
-    if not events:
-        return False, "Transaksi tidak mengandung event RootDisimpan."
-
-    for ev in events:
-        onchain_batch_id = ev['args']['batchId']
-        onchain_root_hex = '0x' + ev['args']['merkleRoot'].hex()
-        if onchain_batch_id == expected_batch_id and onchain_root_hex == expected_merkle_root:
-            return True, None
-
-    return False, "batch_id/merkle_root pada event on-chain tidak cocok dengan data yang dikirim."
+def _normalize_public_id(public_id: str):
+    raw = (public_id or '').replace('-', '').lower()
+    if len(raw) != 32 or any(c not in '0123456789abcdef' for c in raw):
+        return None, None
+    return raw, f"{raw[:8]}-{raw[8:12]}-{raw[12:16]}-{raw[16:20]}-{raw[20:]}"
 
 
 # ============================================
-# GET ALL SERTIFIKAT
+# DAFTAR SERTIFIKAT (admin: semua, penerbit: miliknya)
 # ============================================
-@sertifikat_bp.route('/sertifikat', methods=['GET'])
+@sertifikat_bp.route('', methods=['GET'])
+@token_required(ROLE_ADMIN, ROLE_PENERBIT)
 def get_all_sertifikat():
-    try:
-        supabase = current_app.supabase
-        user_id = request.headers.get('X-User-ID')
-        user_role = request.headers.get('X-User-Role')
-
-        if user_role == 'admin':
-            response = supabase.table('sertifikat').select('*').order('created_at', desc=True).execute()
-        else:
-            if user_id:
-                response = supabase.table('sertifikat').select('*').eq('penerbit_id', int(user_id)).order('created_at', desc=True).execute()
-            else:
-                return jsonify({'success': True, 'sertifikat': []})
-
-        result = []
-        for s in response.data:
-            result.append({
-                'id': s.get('id'),
-                'public_id': s.get('public_id'),
-                'batch_id': s.get('batch_id'),
-                'nama_peserta': s.get('nama_peserta'),
-                'nama_kegiatan': s.get('nama_kegiatan'),
-                'nama_lokasi': s.get('nama_lokasi'),
-                'latitude': s.get('latitude'),
-                'longitude': s.get('longitude'),
-                'waktu_mulai': s.get('waktu_mulai'),
-                'waktu_selesai': s.get('waktu_selesai'),
-                'cert_hash': s.get('cert_hash'),
-                'merkle_root': s.get('merkle_root'),
-                'tx_hash': s.get('tx_hash'),
-                'verify_url': s.get('verify_url'),
-                'created_at': s.get('created_at')
-            })
-
-        return jsonify({'success': True, 'sertifikat': result})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ============================================
-# VERIFY SERTIFIKAT (8 VARIABEL)
-# ============================================
-@sertifikat_bp.route('/sertifikat/verify/<public_id>', methods=['GET'])
-def verify_sertifikat(public_id):
-    try:
-        supabase = current_app.supabase
-        w3 = current_app.w3
-        contract_address = current_app.contract_address
-        contract = w3.eth.contract(address=contract_address, abi=CONTRACT_ABI)
-
-        raw_id = public_id.replace('-', '')
-        formatted_public_id = f"{raw_id[:8]}-{raw_id[8:12]}-{raw_id[12:16]}-{raw_id[16:20]}-{raw_id[20:]}"
-
-        print(f"🔍 Public ID: {public_id}")
-        print(f"📝 Raw ID: {raw_id}")
-
-        db_response = supabase.table('sertifikat').select(
-            'batch_id, merkle_root, merkle_proof, nama_peserta, nama_kegiatan, nama_lokasi, '
-            'latitude, longitude, waktu_mulai, waktu_selesai, keterangan, created_at, cert_hash'
-        ).eq('public_id', formatted_public_id).execute()
-
-        if not db_response.data:
-            return jsonify({
-                'valid': False,
-                'message': '❌ Sertifikat tidak ditemukan di database.'
-            }), 200
-
-        data = db_response.data[0]
-        batch_id = data.get('batch_id')
-
-        if not batch_id:
-            return jsonify({
-                'valid': False,
-                'message': '❌ Batch ID tidak ditemukan.'
-            }), 200
-
-        try:
-            onchain_merkle_root_bytes = contract.functions.getRoot(batch_id).call()
-        except Exception as e:
-            print(f"❌ Gagal getRoot dari blockchain: {e}")
-            return jsonify({
-                'valid': False,
-                'message': '❌ Gagal mengambil root dari blockchain.'
-            }), 200
-
-        if onchain_merkle_root_bytes == b'\x00' * 32:
-            return jsonify({
-                'valid': False,
-                'message': '❌ Batch belum terdaftar di blockchain.'
-            }), 200
-
-        onchain_merkle_root_hex = onchain_merkle_root_bytes.hex()
-        onchain_merkle_root_with_prefix = '0x' + onchain_merkle_root_hex
-
-        print(f"🌳 On-chain Merkle Root: {onchain_merkle_root_with_prefix}")
-
-        # Hitung ulang leaf hash dengan 8 variabel + public_id
-        leaf_bytes = compute_leaf_hash(
-            data.get('nama_peserta'),
-            data.get('nama_kegiatan'),
-            data.get('nama_lokasi'),
-            data.get('latitude'),
-            data.get('longitude'),
-            data.get('waktu_mulai', ''),
-            data.get('waktu_selesai', ''),
-            data.get('keterangan', ''),
-            raw_id
-        )
-
-        print("=" * 60)
-        print(f"🔍 Public ID: {public_id}")
-        print(f"📝 Nama Peserta: {data.get('nama_peserta')}")
-        print(f"📝 Nama Kegiatan: {data.get('nama_kegiatan')}")
-        print(f"📝 Nama Lokasi: {data.get('nama_lokasi')}")
-        print(f"📝 Waktu Mulai: {data.get('waktu_mulai')}")
-        print(f"📝 Waktu Selesai: {data.get('waktu_selesai')}")
-        print(f"📝 Keterangan: {data.get('keterangan')}")
-        print(f"🧬 Leaf hash (hex): {leaf_bytes.hex()}")
-        print(f"📦 cert_hash di DB: {data.get('cert_hash')}")
-        print(f"📦 Apakah leaf hash == cert_hash? {leaf_bytes.hex() == data.get('cert_hash')}")
-
-        proof = decode_proof_from_db(data.get('merkle_proof', '[]'))
-        print(f"📦 Decoded proof: {proof}")
-
-        is_valid = verify_merkle_proof(leaf_bytes, proof, onchain_merkle_root_bytes)
-        print(f"✅ Verifikasi proof result: {is_valid}")
-        print("=" * 60)
-
-        if not is_valid:
-            return jsonify({
-                'valid': False,
-                'message': '❌ Data sertifikat telah dimodifikasi (proof invalid).'
-            }), 200
-
-        return jsonify({
-            'valid': True,
-            'public_id': formatted_public_id,
-            'batch_id': batch_id,
-            'merkle_root': onchain_merkle_root_with_prefix,
-            'nama_peserta': data.get('nama_peserta', 'Tidak tersedia'),
-            'nama_kegiatan': data.get('nama_kegiatan', 'Tidak tersedia'),
-            'nama_lokasi': data.get('nama_lokasi', 'Tidak tersedia'),
-            'waktu_mulai': data.get('waktu_mulai'),
-            'waktu_selesai': data.get('waktu_selesai'),
-            'created_at': data.get('created_at'),
-            'message': '✅ Sertifikat valid (root & proof sesuai dengan blockchain)'
-        })
-
-    except Exception as e:
-        print(f"❌ ERROR verify: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'valid': False, 'error': str(e)}), 200
-
-
-# ============================================
-# KONFIRMASI BATCH
-# ============================================
-@sertifikat_bp.route('/sertifikat/konfirmasi', methods=['POST'])
-def konfirmasi_batch():
-    try:
-        data = request.json
-        supabase = current_app.supabase
-        w3 = current_app.w3
-        contract_address = current_app.contract_address
-        contract = w3.eth.contract(address=contract_address, abi=CONTRACT_ABI)
-
-        merkle_root = data.get('merkle_root')
-        tx_hash = data.get('tx_hash')
-        batch_id_onchain = data.get('batch_id_onchain')
-        sertifikat_list = data.get('sertifikat_list', [])
-
-        if not sertifikat_list:
-            return jsonify({'success': False, 'error': 'Tidak ada sertifikat'}), 400
-
-        if not tx_hash or not merkle_root or batch_id_onchain is None:
-            return jsonify({'success': False, 'error': 'tx_hash, merkle_root, dan batch_id_onchain wajib diisi'}), 400
-
-        is_valid_tx, error_message = verify_tx_on_chain(
-            w3, contract, contract_address, tx_hash, batch_id_onchain, merkle_root
-        )
-        if not is_valid_tx:
-            return jsonify({'success': False, 'error': f'Konfirmasi ditolak: {error_message}'}), 400
-
-        try:
-            supabase.table('batch_sertifikat').update({
-                'merkle_root': merkle_root,
-                'tx_hash': tx_hash
-            }).eq('id', batch_id_onchain).execute()
-        except Exception as e:
-            print(f"⚠️ Gagal update batch: {e}")
-
-        updated = []
-        for cert in sertifikat_list:
-            public_id = cert.get('public_id')
-            if not public_id:
-                continue
-
-            update_data = {
-                'merkle_root': merkle_root,
-                'tx_hash': tx_hash,
-                'batch_id': batch_id_onchain,
-                'status': 'published'
-            }
-            proof = cert.get('proof', [])
-            if proof:
-                update_data['merkle_proof'] = json.dumps(proof)
-
-            response = supabase.table('sertifikat').update(update_data).eq('public_id', public_id).execute()
-            if response.data:
-                updated.append(public_id)
-
-        return jsonify({'success': True, 'message': f'{len(updated)} sertifikat dikonfirmasi di blockchain'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ============================================
-# KELOLA PENERBIT
-# ============================================
-@sertifikat_bp.route('/penerbit', methods=['GET'])
-def get_penerbit():
-    try:
-        supabase = current_app.supabase
-        response = supabase.table('users').select('*').eq('role', 'penerbit').execute()
-        penerbit_list = []
-        for user in response.data:
-            penerbit_list.append({
-                'id': user.get('id'),
-                'username': user.get('username'),
-                'nama_lengkap': user.get('nama_lengkap', user.get('username')),
-                'wallet_address': user.get('wallet_address', ''),
-                'status': user.get('status', 'active')
-            })
-        return jsonify({'success': True, 'penerbit': penerbit_list})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@sertifikat_bp.route('/penerbit', methods=['POST'])
-@require_role('admin')
-def add_penerbit():
-    try:
-        data = request.json
-        supabase = current_app.supabase
-        if not data.get('username') or not data.get('password'):
-            return jsonify({'success': False, 'error': 'Username dan password wajib diisi'}), 400
-
-        check = supabase.table('users').select('*').eq('username', data['username']).execute()
-        if check.data:
-            return jsonify({'success': False, 'error': 'Username sudah digunakan'}), 400
-
-        hashed = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        new_user = {
-            'username': data['username'],
-            'password': hashed,
-            'role': data.get('role', 'penerbit'),
-            'nama_lengkap': data.get('nama_lengkap', data['username']),
-            'wallet_address': data.get('wallet_address', ''),
-            'status': 'active',
-            'is_active': True
-        }
-        supabase.table('users').insert(new_user).execute()
-        return jsonify({'success': True, 'message': 'Penerbit berhasil ditambahkan'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@sertifikat_bp.route('/penerbit/<int:id>/revoke', methods=['POST'])
-@require_role('admin')
-def revoke_penerbit(id):
-    try:
-        supabase = current_app.supabase
-        check = supabase.table('users').select('*').eq('id', id).eq('role', 'penerbit').execute()
-        if not check.data:
-            return jsonify({'success': False, 'error': 'Penerbit tidak ditemukan'}), 404
-
-        supabase.table('users').update({'status': 'inactive', 'is_active': False}).eq('id', id).eq('role', 'penerbit').execute()
-        return jsonify({'success': True, 'message': 'Hak penerbit berhasil dicabut'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@sertifikat_bp.route('/penerbit/<int:id>/activate', methods=['POST'])
-@require_role('admin')
-def activate_penerbit(id):
-    try:
-        supabase = current_app.supabase
-        check = supabase.table('users').select('*').eq('id', id).eq('role', 'penerbit').execute()
-        if not check.data:
-            return jsonify({'success': False, 'error': 'Penerbit tidak ditemukan'}), 404
-
-        supabase.table('users').update({'status': 'active', 'is_active': True}).eq('id', id).eq('role', 'penerbit').execute()
-        return jsonify({'success': True, 'message': 'Penerbit diaktifkan kembali'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ============================================
-# GENERATE QR CODE
-# ============================================
-@sertifikat_bp.route('/sertifikat/generate-qr/<public_id>', methods=['GET'])
-def generate_qr(public_id):
-    try:
-        base_url = os.getenv('VERIFICATION_BASE_URL', 'https://zakanel-frontend.pages.dev')
-        if base_url.endswith('/'):
-            base_url = base_url[:-1]
-        verify_url = f"{base_url}/verifikasi/valid?id={public_id}"
-
-        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=4)
-        qr.add_data(verify_url)
-        qr.make(fit=True)
-        img = qr.make_image(fill_color="black", back_color="white")
-
-        buffered = io.BytesIO()
-        img.save(buffered, format="PNG")
-        img_base64 = base64.b64encode(buffered.getvalue()).decode()
-
-        return jsonify({'success': True, 'qr_code': f"data:image/png;base64,{img_base64}", 'verify_url': verify_url})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ============================================
-# PREPARE SERTIFIKAT (8 VARIABEL)
-# ============================================
-@sertifikat_bp.route('/sertifikat/prepare', methods=['POST'])
-@require_role('admin', 'penerbit')
-def prepare_sertifikat():
-    try:
-        data = request.json
-        supabase = current_app.supabase
-
-        penerbit_id = data.get('penerbit_id')
-        if not penerbit_id:
-            penerbit_id = request.headers.get('X-User-ID')
-        if not penerbit_id:
-            return jsonify({'success': False, 'error': 'penerbit_id tidak ditemukan'}), 400
-
-        try:
-            penerbit_id = int(penerbit_id)
-        except ValueError:
-            return jsonify({'success': False, 'error': 'penerbit_id harus berupa angka'}), 400
-
-        cert_list = data.get('sertifikat_list', [])
-        if not cert_list:
-            return jsonify({'success': False, 'error': 'Tidak ada data sertifikat'}), 400
-
-        for cert in cert_list:
-            required_fields = ['nama_peserta', 'nama_kegiatan', 'nama_lokasi', 'latitude', 'longitude']
-            for field in required_fields:
-                if not cert.get(field):
-                    return jsonify({'success': False, 'error': f'Field {field} wajib diisi'}), 400
-
-        public_ids = [secrets.token_hex(16) for _ in cert_list]
-
-        leaves = []
-        for idx, cert in enumerate(cert_list):
-            leaf = compute_leaf_hash(
-                cert.get('nama_peserta'),
-                cert.get('nama_kegiatan'),
-                cert.get('nama_lokasi'),
-                cert.get('latitude'),
-                cert.get('longitude'),
-                cert.get('waktu_mulai', ''),
-                cert.get('waktu_selesai', ''),
-                cert.get('keterangan', ''),
-                public_ids[idx]
-            )
-            leaves.append(leaf)
-
-            print(f"🔹 Prepare - Nama: {cert.get('nama_peserta')}")
-            print(f"   Public ID: {public_ids[idx]}")
-            print(f"   Waktu Mulai: {cert.get('waktu_mulai')}")
-            print(f"   Waktu Selesai: {cert.get('waktu_selesai')}")
-            print(f"   Keterangan: {cert.get('keterangan')}")
-            print(f"   Leaf hash: {leaf.hex()}")
-
-        root_bytes, all_proofs = build_merkle_tree(leaves)
-        merkle_root = '0x' + root_bytes.hex()
-        if merkle_root == '0x':
-            return jsonify({'success': False, 'error': 'Gagal membangun Merkle tree'}), 500
-
-        batch_id = int(datetime.now().timestamp() * 1000)
-
-        try:
-            supabase.table('batch_sertifikat').insert({
-                'id': batch_id,
-                'merkle_root': merkle_root,
-                'created_at': datetime.now().isoformat()
-            }).execute()
-        except Exception as e:
-            return jsonify({'success': False, 'error': f'Gagal insert batch: {str(e)}'}), 500
-
-        base_url = os.getenv('VERIFICATION_BASE_URL', 'https://zakanel-frontend.pages.dev')
-        if base_url.endswith('/'):
-            base_url = base_url[:-1]
-
-        results = []
-        for idx, cert_data in enumerate(cert_list):
-            public_id = public_ids[idx]
-            leaf = leaves[idx]
-            proof_json = encode_proof_for_db(all_proofs[idx])
-
-            new_cert = {
-                'public_id': public_id,
-                'batch_id': batch_id,
-                'leaf_index': idx,
-                'nama_peserta': cert_data.get('nama_peserta', ''),
-                'nama_kegiatan': cert_data.get('nama_kegiatan', ''),
-                'nama_lokasi': cert_data.get('nama_lokasi', ''),
-                'latitude': fmt_coord(cert_data.get('latitude', 0)),
-                'longitude': fmt_coord(cert_data.get('longitude', 0)),
-                'waktu_mulai': cert_data.get('waktu_mulai', datetime.now().isoformat()),
-                'waktu_selesai': cert_data.get('waktu_selesai', datetime.now().isoformat()),
-                'keterangan': cert_data.get('keterangan', ''),
-                'cert_hash': leaf.hex(),
-                'merkle_root': merkle_root,
-                'merkle_proof': proof_json,
-                'tx_hash': None,
-                'verify_url': f"{base_url}/verifikasi/valid?id={public_id}",
-                'penerbit_id': penerbit_id,
-                'status': 'draft'
-            }
-
-            try:
-                response = supabase.table('sertifikat').insert(new_cert).execute()
-                if response.data:
-                    results.append(response.data[0])
-            except Exception as e:
-                print(f"❌ Error insert sertifikat: {e}")
-
-        if not results:
-            return jsonify({'success': False, 'error': 'Gagal menyimpan semua sertifikat'}), 500
-
-        first_public_id = results[0]['public_id'] if results else None
-
-        return jsonify({
-            'success': True,
-            'count': len(results),
-            'data': results,
-            'merkle_root': merkle_root,
-            'batch_id': batch_id,
-            'first_public_id': first_public_id
-        })
-
-    except Exception as e:
-        print(f"❌ ERROR PREPARE: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ============================================
-# GET DRAFT SERTIFIKAT
-# ============================================
-@sertifikat_bp.route('/sertifikat/draft', methods=['GET'])
+    user = current_user()
+    q = current_app.supabase.table('sertifikat').select('*')
+    if user['role'] == ROLE_PENERBIT:
+        q = q.eq('penerbit_id', user['id'])
+    res = q.order('created_at', desc=True).execute()
+    return jsonify({'success': True, 'sertifikat': [{k: s.get(k) for k in LIST_FIELDS} for s in res.data]})
+
+
+@sertifikat_bp.route('/draft', methods=['GET'])
+@token_required(ROLE_PENERBIT)
 def get_draft_sertifikat():
+    res = current_app.supabase.table('sertifikat').select('*').eq('penerbit_id', current_user()['id']) \
+        .eq('status', 'draft').order('created_at', desc=True).execute()
+    return jsonify({'success': True, 'sertifikat': [{k: s.get(k) for k in LIST_FIELDS} for s in res.data]})
+
+
+# ============================================
+# PREPARE: hashing SHA-256 + Merkle Tree, simpan draft
+# ============================================
+@sertifikat_bp.route('/prepare', methods=['POST'])
+@token_required(ROLE_PENERBIT)
+def prepare_sertifikat():
+    user = current_user()
+    data = request.get_json(silent=True) or {}
+    cert_list = data.get('sertifikat_list') or []
+
+    if not cert_list:
+        return jsonify({'success': False, 'error': 'Tidak ada data sertifikat'}), 400
+    if len(cert_list) > MAX_BATCH:
+        return jsonify({'success': False, 'error': f'Maksimal {MAX_BATCH} sertifikat per batch'}), 400
+    for cert in cert_list:
+        for field in REQUIRED_FIELDS:
+            if cert.get(field) in (None, ''):
+                return jsonify({'success': False, 'error': f'Field {field} wajib diisi'}), 400
+
+    wallet = user.get('wallet_address')
+    if not is_valid_address(wallet) or not is_penerbit_active_onchain(wallet):
+        log_audit('CERT_PREPARE', status='denied', target_type='wallet', target_id=wallet,
+                  detail={'reason': 'wallet tidak aktif di smart contract'})
+        return jsonify({'success': False, 'error': 'Wallet Anda belum/tidak aktif di smart contract.'}), 403
+
+    public_ids = [secrets.token_hex(16) for _ in cert_list]
+    leaves = [compute_leaf_hash(c['nama_peserta'], c['nama_kegiatan'], c['nama_lokasi'], c['latitude'],
+                                c['longitude'], c.get('waktu_mulai', ''), c.get('waktu_selesai', ''),
+                                c.get('keterangan', ''), public_ids[i]) for i, c in enumerate(cert_list)]
+    root_bytes, all_proofs = build_merkle_tree(leaves)
+    merkle_root = '0x' + root_bytes.hex()
+    batch_id = int(datetime.now().timestamp() * 1000)
+
+    sb = current_app.supabase
+    sb.table('batch_sertifikat').insert({
+        'id': batch_id, 'merkle_root': merkle_root, 'penerbit_id': user['id'], 'status': 'pending',
+        'created_at': datetime.now().isoformat(),
+    }).execute()
+
+    rows = []
+    for idx, c in enumerate(cert_list):
+        rows.append({
+            'public_id': public_ids[idx], 'batch_id': batch_id, 'leaf_index': idx,
+            'nama_peserta': c['nama_peserta'], 'nama_kegiatan': c['nama_kegiatan'], 'nama_lokasi': c['nama_lokasi'],
+            'latitude': fmt_coord(c['latitude']), 'longitude': fmt_coord(c['longitude']),
+            'waktu_mulai': c.get('waktu_mulai', ''), 'waktu_selesai': c.get('waktu_selesai', ''),
+            'keterangan': c.get('keterangan', ''), 'cert_hash': leaves[idx].hex(), 'merkle_root': merkle_root,
+            'merkle_proof': encode_proof_for_db(all_proofs[idx]), 'tx_hash': None,
+            'verify_url': f"{_base_url()}/verifikasi/valid?id={public_ids[idx]}",
+            'penerbit_id': user['id'], 'status': 'draft',
+        })
+    results = []
+    for r in rows:
+        res = sb.table('sertifikat').insert(r).execute()
+        if res.data:
+            results.append(res.data[0])
+
+    log_audit('CERT_PREPARE', target_type='batch', target_id=batch_id,
+              detail={'jumlah': len(results), 'merkle_root': merkle_root})
+    return jsonify({'success': True, 'count': len(results), 'data': results, 'merkle_root': merkle_root,
+                    'batch_id': batch_id, 'first_public_id': results[0]['public_id'] if results else None})
+
+
+# ============================================
+# KONFIRMASI: validasi transaksi simpanRoot lalu publish
+# ============================================
+@sertifikat_bp.route('/konfirmasi', methods=['POST'])
+@token_required(ROLE_PENERBIT)
+def konfirmasi_batch():
+    user = current_user()
+    data = request.get_json(silent=True) or {}
+    tx_hash = (data.get('tx_hash') or '').strip()
+    merkle_root = (data.get('merkle_root') or '').strip().lower()
+    batch_id = data.get('batch_id_onchain')
+    if not tx_hash or not merkle_root or batch_id is None:
+        return jsonify({'success': False, 'error': 'tx_hash, merkle_root, dan batch_id_onchain wajib diisi'}), 400
+
+    sb = current_app.supabase
+    batch = sb.table('batch_sertifikat').select('*').eq('id', batch_id).execute().data
+    if not batch or batch[0].get('penerbit_id') != user['id']:
+        log_audit('CERT_PUBLISH', status='denied', target_type='batch', target_id=batch_id, tx_hash=tx_hash,
+                  detail={'reason': 'batch bukan milik penerbit ini'})
+        return jsonify({'success': False, 'error': 'Batch tidak ditemukan atau bukan milik Anda.'}), 403
+    if (batch[0].get('merkle_root') or '').lower() != merkle_root:
+        return jsonify({'success': False, 'error': 'Merkle root tidak sesuai dengan batch yang disiapkan.'}), 400
+
+    ok, err = verify_root_tx(tx_hash, batch_id, merkle_root, user.get('wallet_address'))
+    if not ok:
+        log_audit('CERT_PUBLISH', status='failed', target_type='batch', target_id=batch_id, tx_hash=tx_hash,
+                  detail={'reason': err})
+        return jsonify({'success': False, 'error': f'Konfirmasi ditolak: {err}'}), 400
+
+    sb.table('batch_sertifikat').update({'tx_hash': tx_hash, 'status': 'success'}).eq('id', batch_id).execute()
+    updated = sb.table('sertifikat').update({'tx_hash': tx_hash, 'status': 'published'}) \
+        .eq('batch_id', batch_id).eq('penerbit_id', user['id']).execute().data
+    log_audit('CERT_PUBLISH', target_type='batch', target_id=batch_id, tx_hash=tx_hash,
+              detail={'jumlah': len(updated), 'merkle_root': merkle_root})
+    return jsonify({'success': True, 'message': f'{len(updated)} sertifikat dikonfirmasi di blockchain'})
+
+
+# ============================================
+# VERIFIKASI PUBLIK
+# ============================================
+@sertifikat_bp.route('/verify/<public_id>', methods=['GET'])
+def verify_sertifikat(public_id):
+    raw_id, formatted = _normalize_public_id(public_id)
+
+    def result(valid, message, extra=None, log_detail=None):
+        log_audit('CERT_VERIFY', status='success' if valid else 'failed', target_type='sertifikat',
+                  target_id=formatted or public_id[:64], detail={'valid': valid, **(log_detail or {})})
+        return jsonify({'valid': valid, 'message': message, **(extra or {})}), 200
+
+    if not raw_id:
+        return result(False, '❌ Format ID sertifikat tidak valid.', log_detail={'reason': 'format_id'})
+
+    rows = current_app.supabase.table('sertifikat').select('*').eq('public_id', formatted).execute().data
+    if not rows:
+        return result(False, '❌ Sertifikat tidak ditemukan di database.', log_detail={'reason': 'not_found'})
+    data = rows[0]
+    if data.get('status') != 'published' or not data.get('batch_id'):
+        return result(False, '❌ Sertifikat belum diterbitkan ke blockchain.', log_detail={'reason': 'not_published'})
+
     try:
-        supabase = current_app.supabase
-        user_id = request.headers.get('X-User-ID')
-        if not user_id:
-            return jsonify({'success': True, 'sertifikat': []})
-
-        response = supabase.table('sertifikat').select('*').eq('penerbit_id', int(user_id)).eq('status', 'draft').order('created_at', desc=True).execute()
-
-        result = []
-        for s in response.data:
-            result.append({
-                'id': s.get('id'),
-                'public_id': s.get('public_id'),
-                'nama_peserta': s.get('nama_peserta'),
-                'nama_kegiatan': s.get('nama_kegiatan'),
-                'nama_lokasi': s.get('nama_lokasi'),
-                'latitude': s.get('latitude'),
-                'longitude': s.get('longitude'),
-                'waktu_mulai': s.get('waktu_mulai'),
-                'waktu_selesai': s.get('waktu_selesai'),
-                'cert_hash': s.get('cert_hash'),
-                'verify_url': s.get('verify_url'),
-                'created_at': s.get('created_at'),
-                'status': s.get('status')
-            })
-
-        return jsonify({'success': True, 'sertifikat': result})
+        _, contract = get_contract()
+        onchain_root = contract.functions.getRoot(int(data['batch_id'])).call()
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        print(f'❌ getRoot gagal: {e}')
+        return jsonify({'valid': False, 'message': '❌ Gagal menghubungi blockchain, coba lagi.'}), 503
+    if onchain_root == b'\x00' * 32:
+        return result(False, '❌ Batch belum terdaftar di blockchain.', log_detail={'reason': 'no_root'})
+
+    leaf = compute_leaf_hash(data.get('nama_peserta'), data.get('nama_kegiatan'), data.get('nama_lokasi'),
+                             data.get('latitude'), data.get('longitude'), data.get('waktu_mulai', ''),
+                             data.get('waktu_selesai', ''), data.get('keterangan', ''), raw_id)
+    if not verify_merkle_proof(leaf, decode_proof_from_db(data.get('merkle_proof', '[]')), onchain_root):
+        return result(False, '❌ Data sertifikat telah dimodifikasi (proof invalid).',
+                      log_detail={'reason': 'proof_invalid', 'batch_id': data['batch_id']})
+
+    return result(True, '✅ Sertifikat valid (root & proof sesuai dengan blockchain)', extra={
+        'public_id': formatted, 'batch_id': data['batch_id'], 'merkle_root': '0x' + onchain_root.hex(),
+        'tx_hash': data.get('tx_hash'), 'nama_peserta': data.get('nama_peserta'),
+        'nama_kegiatan': data.get('nama_kegiatan'), 'nama_lokasi': data.get('nama_lokasi'),
+        'waktu_mulai': data.get('waktu_mulai'), 'waktu_selesai': data.get('waktu_selesai'),
+        'created_at': data.get('created_at'),
+    }, log_detail={'batch_id': data['batch_id']})
 
 
 # ============================================
-# FIX PROOF (8 VARIABEL)
+# QR CODE (publik)
 # ============================================
-@sertifikat_bp.route('/sertifikat/fix-proof/<batch_id>', methods=['GET'])
-@require_role('admin')
+@sertifikat_bp.route('/generate-qr/<public_id>', methods=['GET'])
+def generate_qr(public_id):
+    raw_id, _ = _normalize_public_id(public_id)
+    if not raw_id:
+        return jsonify({'success': False, 'error': 'Format ID tidak valid'}), 400
+    verify_url = f"{_base_url()}/verifikasi/valid?id={raw_id}"
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=4)
+    qr.add_data(verify_url)
+    qr.make(fit=True)
+    buf = io.BytesIO()
+    qr.make_image(fill_color="black", back_color="white").save(buf, format="PNG")
+    return jsonify({'success': True, 'qr_code': 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode(),
+                    'verify_url': verify_url})
+
+
+# ============================================
+# PEMELIHARAAN (admin): hitung ulang proof satu batch
+# ============================================
+@sertifikat_bp.route('/fix-proof/<int:batch_id>', methods=['POST'])
+@token_required(ROLE_ADMIN)
 def fix_proof(batch_id):
-    try:
-        supabase = current_app.supabase
+    sb = current_app.supabase
+    certs = sb.table('sertifikat').select('*').eq('batch_id', batch_id).order('leaf_index').execute().data
+    if not certs:
+        return jsonify({'success': False, 'error': 'Tidak ada sertifikat dalam batch'}), 404
+    leaves = [compute_leaf_hash(c['nama_peserta'], c['nama_kegiatan'], c['nama_lokasi'], c['latitude'],
+                                c['longitude'], c.get('waktu_mulai', ''), c.get('waktu_selesai', ''),
+                                c.get('keterangan', ''), c['public_id'].replace('-', '')) for c in certs]
+    root_bytes, proofs = build_merkle_tree(leaves)
+    for i, c in enumerate(certs):
+        sb.table('sertifikat').update({'merkle_proof': encode_proof_for_db(proofs[i]),
+                                       'cert_hash': leaves[i].hex()}).eq('id', c['id']).execute()
+    log_audit('PROOF_REBUILD', target_type='batch', target_id=batch_id,
+              detail={'jumlah': len(certs), 'root_hasil': '0x' + root_bytes.hex()})
+    return jsonify({'success': True, 'merkle_root': '0x' + root_bytes.hex(), 'jumlah': len(certs)})
 
+
+# ============================================
+# UNDUH SERTIFIKAT (PDF + QR Code)
+# ============================================
+@sertifikat_bp.route('/<public_id>/pdf', methods=['GET'])
+@token_required(ROLE_ADMIN, ROLE_PENERBIT)
+def download_pdf(public_id):
+    from flask import send_file
+    import os
+    from app.utils.pdf_cert import build_certificate_pdf
+
+    user = current_user()
+    raw_id, formatted = _normalize_public_id(public_id)
+    if not raw_id:
+        return jsonify({'success': False, 'error': 'Format ID tidak valid'}), 400
+    rows = current_app.supabase.table('sertifikat').select('*').eq('public_id', formatted).execute().data
+    if not rows:
+        return jsonify({'success': False, 'error': 'Sertifikat tidak ditemukan'}), 404
+    cert = rows[0]
+    if user['role'] == ROLE_PENERBIT and cert.get('penerbit_id') != user['id']:
+        log_audit('CERT_DOWNLOAD', status='denied', target_type='sertifikat', target_id=formatted,
+                  detail={'reason': 'bukan pemilik sertifikat'})
+        return jsonify({'success': False, 'error': 'Sertifikat bukan milik Anda.'}), 403
+    if cert.get('status') != 'published':
+        return jsonify({'success': False, 'error': 'Sertifikat belum diterbitkan ke blockchain.'}), 409
+
+    penerbit = current_app.supabase.table('users').select('nama_lengkap, username') \
+        .eq('id', cert.get('penerbit_id')).execute().data
+    penerbit_nama = (penerbit[0].get('nama_lengkap') or penerbit[0].get('username')) if penerbit else '-'
+    logo = os.getenv('LOGO_PATH', os.path.join(os.path.dirname(__file__), '..', '..', 'static', 'logo.png'))
+    pdf = build_certificate_pdf(
+        cert, f"{_base_url()}/verifikasi/valid?id={raw_id}",
+        institusi=os.getenv('NAMA_INSTITUSI', 'Fakultas Teknik dan Teknologi Kemaritiman - UMRAH'),
+        penerbit_nama=penerbit_nama, logo_path=logo)
+    log_audit('CERT_DOWNLOAD', target_type='sertifikat', target_id=formatted,
+              detail={'nama_peserta': cert.get('nama_peserta')})
+    safe = ''.join(ch if ch.isalnum() else '_' for ch in cert.get('nama_peserta', 'sertifikat'))[:40]
+    return send_file(io.BytesIO(pdf), mimetype='application/pdf', as_attachment=True,
+                     download_name=f'Sertifikat_{safe}_{raw_id[:8]}.pdf')
+
+
+# ============================================
+# AUDIT KONSISTENSI BATCH (off-chain vs on-chain)
+# ============================================
+@sertifikat_bp.route('/batch-audit', methods=['GET'])
+@token_required(ROLE_ADMIN, ROLE_PENERBIT)
+def batch_audit():
+    """
+    Untuk setiap batch milik penerbit (admin: semua batch):
+      - rekonstruksi Merkle Root dari cert_hash di basis data (urut leaf_index)
+      - bandingkan dengan Merkle Root yang tersimpan di smart contract (getRoot)
+      - hitung ulang leaf hash dari metadata & telusuri Merkle Proof tiap sertifikat
+    """
+    user = current_user()
+    sb = current_app.supabase
+    q = sb.table('sertifikat').select('*').eq('status', 'published')
+    if user['role'] == ROLE_PENERBIT:
+        q = q.eq('penerbit_id', user['id'])
+    certs = q.execute().data
+    _, contract = get_contract()
+
+    groups = {}
+    for c in certs:
+        groups.setdefault(c['batch_id'], []).append(c)
+
+    hasil = []
+    for batch_id, items in sorted(groups.items(), key=lambda kv: kv[0], reverse=True):
+        items.sort(key=lambda c: c.get('leaf_index') or 0)
+        root_rekon, _ = build_merkle_tree([bytes.fromhex(c['cert_hash']) for c in items])
         try:
-            response = supabase.table('sertifikat').select('*').eq('batch_id', batch_id).order('leaf_index').execute()
+            root_onchain = contract.functions.getRoot(int(batch_id)).call()
         except Exception:
-            response = supabase.table('sertifikat').select('*').eq('batch_id', batch_id).order('id').execute()
-
-        certs = response.data
-
-        if not certs:
-            return jsonify({'error': 'Tidak ada sertifikat dalam batch'}), 404
-
-        leaves = []
-        for cert in certs:
-            public_id_clean = cert.get('public_id', '').replace('-', '')
-            leaf = compute_leaf_hash(
-                cert.get('nama_peserta'),
-                cert.get('nama_kegiatan'),
-                cert.get('nama_lokasi'),
-                cert.get('latitude'),
-                cert.get('longitude'),
-                cert.get('waktu_mulai', ''),
-                cert.get('waktu_selesai', ''),
-                cert.get('keterangan', ''),
-                public_id_clean
-            )
-            leaves.append(leaf)
-
-        root_bytes, all_proofs = build_merkle_tree(leaves)
-        merkle_root = '0x' + root_bytes.hex()
-
-        updated = []
-        for idx, cert in enumerate(certs):
-            proof_json = encode_proof_for_db(all_proofs[idx])
-            supabase.table('sertifikat').update({
-                'merkle_proof': proof_json,
-                'merkle_root': merkle_root,
-                'cert_hash': leaves[idx].hex()
-            }).eq('id', cert['id']).execute()
-            updated.append(cert['public_id'])
-
-        return jsonify({
-            'success': True,
-            'message': f'Proof untuk {len(updated)} sertifikat telah diperbaiki',
-            'merkle_root': merkle_root,
-            'updated': updated
-        })
-
-    except Exception as e:
-        print(f"❌ ERROR fix_proof: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-
-# ============================================
-# DEBUG FULL (8 VARIABEL)
-# ============================================
-@sertifikat_bp.route('/sertifikat/debug-full/<public_id>', methods=['GET'])
-def debug_full(public_id):
-    try:
-        supabase = current_app.supabase
-        w3 = current_app.w3
-        contract_address = current_app.contract_address
-        contract = w3.eth.contract(address=contract_address, abi=CONTRACT_ABI)
-
-        raw_id = public_id.replace('-', '')
-        formatted_public_id = f"{raw_id[:8]}-{raw_id[8:12]}-{raw_id[12:16]}-{raw_id[16:20]}-{raw_id[20:]}"
-
-        db_response = supabase.table('sertifikat').select('*').eq('public_id', formatted_public_id).execute()
-        if not db_response.data:
-            return jsonify({'error': 'Sertifikat tidak ditemukan'}), 404
-
-        data = db_response.data[0]
-        batch_id = data.get('batch_id')
-
-        onchain_root_bytes = contract.functions.getRoot(batch_id).call()
-        onchain_root_hex = onchain_root_bytes.hex()
-
-        batch_response = supabase.table('sertifikat').select('id, public_id, cert_hash, leaf_index').eq('batch_id', batch_id).order('id').execute()
-
-        all_cert_hashes = [item['cert_hash'] for item in batch_response.data if item.get('cert_hash')]
-
-        if not all_cert_hashes:
-            return jsonify({'error': 'Tidak ada cert_hash valid dalam batch'}), 400
-
-        leaves_bytes = [bytes.fromhex(h) for h in all_cert_hashes]
-        root_reconstructed, proofs_reconstructed = build_merkle_tree(leaves_bytes)
-        root_reconstructed_hex = root_reconstructed.hex()
-
-        try:
-            idx = all_cert_hashes.index(data.get('cert_hash'))
-        except ValueError:
-            return jsonify({'error': 'cert_hash tidak ditemukan di batch'}), 400
-
-        proof_for_this = proofs_reconstructed[idx]
-        proof_from_db = decode_proof_from_db(data.get('merkle_proof', '[]'))
-
-        leaf_bytes = compute_leaf_hash(
-            data.get('nama_peserta'),
-            data.get('nama_kegiatan'),
-            data.get('nama_lokasi'),
-            data.get('latitude'),
-            data.get('longitude'),
-            data.get('waktu_mulai', ''),
-            data.get('waktu_selesai', ''),
-            data.get('keterangan', ''),
-            raw_id
-        )
-        leaf_hex = leaf_bytes.hex()
-
-        return jsonify({
-            'public_id': formatted_public_id,
+            root_onchain = None
+        valid = 0
+        rusak = []
+        for c in items:
+            leaf = compute_leaf_hash(c['nama_peserta'], c['nama_kegiatan'], c['nama_lokasi'], c['latitude'],
+                                     c['longitude'], c.get('waktu_mulai', ''), c.get('waktu_selesai', ''),
+                                     c.get('keterangan', ''), c['public_id'].replace('-', ''))
+            ok = root_onchain is not None and verify_merkle_proof(leaf, decode_proof_from_db(c.get('merkle_proof')), root_onchain)
+            if ok:
+                valid += 1
+            else:
+                rusak.append({'public_id': c['public_id'], 'nama_peserta': c['nama_peserta']})
+        hasil.append({
             'batch_id': batch_id,
-            'data_dari_db': {
-                'nama_peserta': data.get('nama_peserta'),
-                'nama_kegiatan': data.get('nama_kegiatan'),
-                'nama_lokasi': data.get('nama_lokasi'),
-                'latitude': data.get('latitude'),
-                'longitude': data.get('longitude'),
-                'waktu_mulai': data.get('waktu_mulai'),
-                'waktu_selesai': data.get('waktu_selesai'),
-                'keterangan': data.get('keterangan'),
-                'cert_hash_db': data.get('cert_hash'),
-                'merkle_proof_db': data.get('merkle_proof'),
-            },
-            'raw_id_used_for_hash': raw_id,
-            'leaf_hash_dihitung': leaf_hex,
-            'cert_hash_sama': leaf_hex == data.get('cert_hash'),
-            'all_cert_hashes_in_batch': all_cert_hashes,
-            'root_reconstructed': root_reconstructed_hex,
-            'root_on_chain': onchain_root_hex,
-            'root_sama': root_reconstructed_hex == onchain_root_hex,
-            'proof_from_db': proof_from_db,
-            'proof_reconstructed': proof_for_this,
-            'proof_sama': proof_from_db == proof_for_this,
-            'proof_valid': verify_merkle_proof(leaf_bytes, proof_from_db, onchain_root_bytes)
+            'nama_kegiatan': items[0].get('nama_kegiatan'),
+            'jumlah': len(items),
+            'tx_hash': items[0].get('tx_hash'),
+            'root_onchain': ('0x' + root_onchain.hex()) if root_onchain else None,
+            'root_rekonstruksi': '0x' + root_rekon.hex(),
+            'root_cocok': root_onchain is not None and root_rekon == root_onchain,
+            'sertifikat_valid': valid,
+            'sertifikat_rusak': rusak,
         })
 
-    except Exception as e:
-        print(f"❌ ERROR debug_full: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+    total = sum(h['jumlah'] for h in hasil)
+    total_valid = sum(h['sertifikat_valid'] for h in hasil)
+    log_audit('BATCH_AUDIT', status='success' if total == total_valid else 'failed', target_type='batch',
+              target_id='semua' if user['role'] == ROLE_ADMIN else f"penerbit:{user['id']}",
+              detail={'batch': len(hasil), 'sertifikat': total, 'valid': total_valid})
+    return jsonify({'success': True, 'total_batch': len(hasil), 'total_sertifikat': total,
+                    'total_valid': total_valid, 'batches': hasil})

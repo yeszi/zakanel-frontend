@@ -9,6 +9,7 @@
         <router-link to="/admin" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Dashboard</router-link>
         <router-link to="/admin/tambah-penerbit" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">(+) Tambahkan Penerbit</router-link>
         <router-link to="/admin/data-penerbit" class="block px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium">(=) Data Penerbit</router-link>
+        <router-link to="/admin/audit-log" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">(≡) Audit Log</router-link>
       </nav>
       
       <button @click="logout" class="block w-full text-left px-3 py-2 rounded-lg text-red-600 hover:bg-red-50">Logout</button>
@@ -148,15 +149,15 @@ const handleRevoke = async (penerbit) => {
       return
     }
 
-    // 🔥 STEP 2: Update di database
-    await api.post(`/penerbit/${penerbit.id}/revoke`)
+    // 🔥 STEP 2: Update di database (backend memverifikasi tx_hash di blockchain)
+    await api.post(`/penerbit/${penerbit.id}/revoke`, { tx_hash: contract.txHash.value })
 
     // 🔥 STEP 3: Refresh
     await loadPenerbit()
 
     alert(`✅ Hak "${penerbit.nama_lengkap}" dicabut!\n🔗 TX: ${contract.txHash.value}`)
   } catch (err) {
-    alert('❌ Gagal: ' + err.message)
+    alert('❌ Gagal: ' + (err.response?.data?.error || err.message))
   }
 
   loading.value = false
@@ -196,7 +197,7 @@ const handleActivate = async (penerbit) => {
     }
 
     // 🔥 STEP 2: Update status di database
-    await api.post(`/penerbit/${penerbit.id}/activate`)
+    await api.post(`/penerbit/${penerbit.id}/activate`, { tx_hash: contract.txHash.value })
 
     // 🔥 STEP 3: Refresh data
     await loadPenerbit()
@@ -204,7 +205,7 @@ const handleActivate = async (penerbit) => {
     alert(`✅ "${penerbit.nama_lengkap}" berhasil diaktifkan kembali!\n🔗 TX: ${contract.txHash.value}`)
 
   } catch (err) {
-    alert('❌ Gagal: ' + err.message)
+    alert('❌ Gagal: ' + (err.response?.data?.error || err.message))
   }
 
   loading.value = false

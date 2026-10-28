@@ -11,4 +11,5 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["python", "main.py"]
+# 1 worker + beberapa thread: penguncian rantai audit log berlaku dalam satu proses
+CMD ["gunicorn", "-w", "1", "--threads", "8", "-b", "0.0.0.0:5000", "main:app"]

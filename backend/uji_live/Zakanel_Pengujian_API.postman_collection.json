@@ -1,0 +1,953 @@
+{
+ "info": {
+  "_postman_id": "da10860f-1ee8-41cb-9cda-b1a5c899aba7",
+  "name": "Zakanel - Pengujian API Verifikasi Sertifikat",
+  "description": "Pengujian API (Bab III E.6.4). Isi variabel koleksi base_url, admin_user, admin_pass, penerbit_user, penerbit_pass, lalu jalankan dengan Collection Runner. Jalankan setelah ada minimal satu sertifikat published milik penerbit (misalnya setelah uji_live.py).",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "item": [
+  {
+   "name": "1. Autentikasi",
+   "item": [
+    {
+     "name": "Login admin berhasil",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Login admin berhasil -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });",
+         "var j=pm.response.json(); pm.collectionVariables.set('token_admin', j.token); pm.test('JWT diterbitkan', function(){ pm.expect(j.token.split('.').length).to.eql(3); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/auth/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "auth",
+        "login"
+       ]
+      },
+      "description": "",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n \"username\": \"{{admin_user}}\",\n \"password\": \"{{admin_pass}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "Login penerbit berhasil",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Login penerbit berhasil -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });",
+         "pm.collectionVariables.set('token_penerbit', pm.response.json().token);"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/auth/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "auth",
+        "login"
+       ]
+      },
+      "description": "",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n \"username\": \"{{penerbit_user}}\",\n \"password\": \"{{penerbit_pass}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "Login gagal (password salah)",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Login gagal (password salah) -> status 401', function () { pm.expect(pm.response.code).to.be.oneOf([401]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/auth/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "auth",
+        "login"
+       ]
+      },
+      "description": "",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n \"username\": \"{{admin_user}}\",\n \"password\": \"salah-salah\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "Data pengguna dari token (me)",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Data pengguna dari token (me) -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_admin}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/auth/me",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "auth",
+        "me"
+       ]
+      },
+      "description": ""
+     }
+    }
+   ]
+  },
+  {
+   "name": "2. Penerbit (Admin)",
+   "item": [
+    {
+     "name": "Daftar penerbit",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Daftar penerbit -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_admin}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/penerbit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "penerbit"
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Cek username & wallet sebelum transaksi",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Cek username & wallet sebelum transaksi -> status 200 / 409', function () { pm.expect(pm.response.code).to.be.oneOf([200, 409]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_admin}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/penerbit/check?username=penerbit_baru&wallet_address=0x000000000000000000000000000000000000dEaD",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "penerbit",
+        "check"
+       ],
+       "query": [
+        {
+         "key": "username",
+         "value": "penerbit_baru"
+        },
+        {
+         "key": "wallet_address",
+         "value": "0x000000000000000000000000000000000000dEaD"
+        }
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Tambah penerbit dengan tx_hash palsu (ditolak)",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Tambah penerbit dengan tx_hash palsu (ditolak) -> status 400', function () { pm.expect(pm.response.code).to.be.oneOf([400]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_admin}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/penerbit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "penerbit"
+       ]
+      },
+      "description": "Tambah penerbit yang sah memerlukan tx_hash dari MetaMask (tambahPenerbit). Uji sah dilakukan melalui aplikasi/uji_live.py.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n \"username\": \"uji_postman\",\n \"password\": \"Penerbit#2026\",\n \"wallet_address\": \"0x000000000000000000000000000000000000dEaD\",\n \"nama_lengkap\": \"Uji Postman\",\n \"tx_hash\": \"0xabababababababababababababababababababababababababababababababab\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "3. Sertifikat",
+   "item": [
+    {
+     "name": "Daftar sertifikat penerbit",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Daftar sertifikat penerbit -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });",
+         "var d=pm.response.json(); var l=(d.sertifikat||d.data||[]).filter(function(x){return x.status==='published';}); if(l.length && !pm.collectionVariables.get('public_id')){ pm.collectionVariables.set('public_id', l[0].public_id.replace(/-/g,'')); }"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_penerbit}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/sertifikat",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "sertifikat"
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Verifikasi sertifikat valid",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Verifikasi sertifikat valid -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });",
+         "pm.test('Sertifikat valid', function(){ pm.expect(pm.response.json().valid).to.eql(true); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/sertifikat/verify/{{public_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "sertifikat",
+        "verify",
+        "{{public_id}}"
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Verifikasi ID palsu",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Verifikasi ID palsu -> status 200 / 404', function () { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });",
+         "pm.test('Sertifikat tidak valid', function(){ pm.expect(pm.response.json().valid).to.eql(false); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/sertifikat/verify/abababababababababababababababab",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "sertifikat",
+        "verify",
+        "abababababababababababababababab"
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Generate QR Code",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Generate QR Code -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/sertifikat/generate-qr/{{public_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "sertifikat",
+        "generate-qr",
+        "{{public_id}}"
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Unduh sertifikat PDF",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Unduh sertifikat PDF -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });",
+         "pm.test('Berkas PDF', function(){ pm.expect(pm.response.headers.get('Content-Type')).to.include('pdf'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_penerbit}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/sertifikat/{{public_id}}/pdf",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "sertifikat",
+        "{{public_id}}",
+        "pdf"
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Audit rantai batch",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Audit rantai batch -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_penerbit}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/sertifikat/batch-audit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "sertifikat",
+        "batch-audit"
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Konfirmasi dengan tx_hash palsu (ditolak)",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Konfirmasi dengan tx_hash palsu (ditolak) -> status 400 / 403 / 404', function () { pm.expect(pm.response.code).to.be.oneOf([400, 403, 404]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_penerbit}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/sertifikat/konfirmasi",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "sertifikat",
+        "konfirmasi"
+       ]
+      },
+      "description": "",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n \"merkle_root\": \"0x1111111111111111111111111111111111111111111111111111111111111111\",\n \"tx_hash\": \"0xabababababababababababababababababababababababababababababababab\",\n \"batch_id_onchain\": 1\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "4. Audit Log (Admin)",
+   "item": [
+    {
+     "name": "Daftar audit log",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Daftar audit log -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_admin}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/audit?limit=100",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "audit"
+       ],
+       "query": [
+        {
+         "key": "limit",
+         "value": "100"
+        }
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Verifikasi integritas audit log",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Verifikasi integritas audit log -> status 200', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });",
+         "pm.test('Rantai audit log valid', function(){ pm.expect(pm.response.json().valid).to.eql(true); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_admin}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/audit/verify",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "audit",
+        "verify"
+       ]
+      },
+      "description": ""
+     }
+    }
+   ]
+  },
+  {
+   "name": "5. RBAC & JWT (harus ditolak)",
+   "item": [
+    {
+     "name": "Tambah penerbit tanpa token",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Tambah penerbit tanpa token -> status 401', function () { pm.expect(pm.response.code).to.be.oneOf([401]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/penerbit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "penerbit"
+       ]
+      },
+      "description": "",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n \"username\": \"a\",\n \"password\": \"12345678\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "Header X-User-Role dipalsukan",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Header X-User-Role dipalsukan -> status 401', function () { pm.expect(pm.response.code).to.be.oneOf([401]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "X-User-Role",
+        "value": "admin"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/penerbit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "penerbit"
+       ]
+      },
+      "description": "",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n \"username\": \"a\",\n \"password\": \"12345678\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "Penerbit mengakses audit log",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Penerbit mengakses audit log -> status 403', function () { pm.expect(pm.response.code).to.be.oneOf([403]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_penerbit}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/audit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "audit"
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Admin memanggil prepare",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Admin memanggil prepare -> status 403', function () { pm.expect(pm.response.code).to.be.oneOf([403]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_admin}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/sertifikat/prepare",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "sertifikat",
+        "prepare"
+       ]
+      },
+      "description": "",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n \"sertifikat_list\": []\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "PDF tanpa token",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('PDF tanpa token -> status 401', function () { pm.expect(pm.response.code).to.be.oneOf([401]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{base_url}}/api/sertifikat/{{public_id}}/pdf",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "sertifikat",
+        "{{public_id}}",
+        "pdf"
+       ]
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "Token alg=none",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('Token alg=none -> status 401', function () { pm.expect(pm.response.code).to.be.oneOf([401]); });",
+         "pm.test('Waktu respons tercatat', function () { pm.expect(pm.response.responseTime).to.be.a('number'); });"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{token_none}}"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/api/penerbit",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "api",
+        "penerbit"
+       ]
+      },
+      "description": ""
+     }
+    }
+   ]
+  }
+ ],
+ "variable": [
+  {
+   "key": "base_url",
+   "value": "http://127.0.0.1:5000"
+  },
+  {
+   "key": "admin_user",
+   "value": "admin"
+  },
+  {
+   "key": "admin_pass",
+   "value": ""
+  },
+  {
+   "key": "penerbit_user",
+   "value": "uji_penerbit1"
+  },
+  {
+   "key": "penerbit_pass",
+   "value": "Penerbit#Uji2026"
+  },
+  {
+   "key": "public_id",
+   "value": ""
+  },
+  {
+   "key": "token_admin",
+   "value": ""
+  },
+  {
+   "key": "token_penerbit",
+   "value": ""
+  },
+  {
+   "key": "token_none",
+   "value": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIiwiZXhwIjo5OTk5OTk5OTk5fQ."
+  }
+ ]
+}
