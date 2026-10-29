@@ -33,6 +33,11 @@
         <!-- Form -->
         <div class="lg:col-span-2">
           <div class="card">
+            <div class="flex items-center justify-end gap-3 mb-3 text-sm">
+              <input ref="csvInput" type="file" accept=".csv,text/csv" @change="importCsv" class="hidden" />
+              <button type="button" @click="csvInput.click()" class="px-3 py-1 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50">📄 Impor CSV</button>
+              <button type="button" @click="unduhTemplateCsv" class="text-gray-400 hover:text-gray-600 underline">template</button>
+            </div>
             <form @submit.prevent="addToBatch" class="space-y-5">
               <div>
                 <label class="form-label">Nama Kegiatan</label>
@@ -320,6 +325,91 @@ const removeFromBatch = (idx) => {
   if (confirm(`Hapus data "${batch.value[idx].nama_peserta}" dari antrean?`)) {
     batch.value.splice(idx, 1)
   }
+}
+
+// ===== IMPOR CSV =====
+const csvInput = ref(null)
+const CSV_KOLOM = ['nama_peserta', 'nama_kegiatan', 'nama_lokasi', 'latitude', 'longitude', 'waktu_mulai', 'waktu_selesai', 'keterangan']
+const MAX_BATCH_UI = 500
+
+// Parser CSV sederhana: mendukung tanda kutip, BOM, pemisah koma atau titik koma (Excel Indonesia)
+const parseCsv = (text) => {
+  text = text.replace(/^﻿/, '')
+  const firstLine = text.split(/\r?\n/)[0] || ''
+  const delim = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ';' : ','
+  const rows = []
+  let row = [], cur = '', inQ = false
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (inQ) {
+      if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++ }
+      else if (ch === '"') inQ = false
+      else cur += ch
+    } else if (ch === '"') inQ = true
+    else if (ch === delim) { row.push(cur); cur = '' }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++
+      row.push(cur); cur = ''
+      if (row.some(c => c.trim() !== '')) rows.push(row)
+      row = []
+    } else cur += ch
+  }
+  row.push(cur)
+  if (row.some(c => c.trim() !== '')) rows.push(row)
+  return rows
+}
+
+const importCsv = async (event) => {
+  const file = event.target.files?.[0]
+  event.target.value = ''   // supaya file yang sama bisa dipilih ulang
+  if (!file) return
+  const rows = parseCsv(await file.text())
+  if (rows.length < 2) { alert('❌ File CSV kosong atau tidak ada baris data.'); return }
+
+  const header = rows[0].map(h => h.trim().toLowerCase())
+  const wajib = ['nama_peserta', 'nama_kegiatan', 'nama_lokasi', 'latitude', 'longitude', 'waktu_mulai', 'waktu_selesai']
+  const hilang = wajib.filter(k => !header.includes(k))
+  if (hilang.length) { alert('❌ Kolom CSV belum lengkap. Kolom yang hilang: ' + hilang.join(', ')); return }
+
+  const idx = Object.fromEntries(CSV_KOLOM.map(k => [k, header.indexOf(k)]))
+  const valid = [], gagal = []
+  rows.slice(1).forEach((r, i) => {
+    const get = (k) => (idx[k] >= 0 ? (r[idx[k]] || '').trim() : '')
+    const item = {
+      nama_peserta: get('nama_peserta'), nama_kegiatan: get('nama_kegiatan'), nama_lokasi: get('nama_lokasi'),
+      latitude: parseFloat(get('latitude').replace(',', '.')), longitude: parseFloat(get('longitude').replace(',', '.')),
+      waktu_mulai: get('waktu_mulai').replace(' ', 'T'), waktu_selesai: get('waktu_selesai').replace(' ', 'T'),
+      keterangan: get('keterangan')
+    }
+    const lengkap = item.nama_peserta && item.nama_kegiatan && item.nama_lokasi &&
+      Number.isFinite(item.latitude) && Number.isFinite(item.longitude) && item.waktu_mulai && item.waktu_selesai
+    if (!lengkap) { gagal.push(i + 2); return }   // +2 = nomor baris di file (header = baris 1)
+    valid.push(item)
+  })
+
+  // buang duplikat (5 field sama) terhadap antrean yang sudah ada
+  const kunci = (x) => [x.nama_peserta, x.nama_kegiatan, x.nama_lokasi, x.latitude, x.longitude].join('|')
+  const ada = new Set(batch.value.map(kunci))
+  const baru = valid.filter(x => { const k = kunci(x); if (ada.has(k)) return false; ada.add(k); return true })
+  const duplikat = valid.length - baru.length
+
+  if (batch.value.length + baru.length > MAX_BATCH_UI) {
+    alert(`❌ Maksimal ${MAX_BATCH_UI} data per batch. Antrean sekarang ${batch.value.length}, file ini menambah ${baru.length}.`)
+    return
+  }
+  batch.value.push(...baru)
+  let pesan = `✅ ${baru.length} data ditambahkan ke antrean.`
+  if (duplikat) pesan += `\n⚠️ ${duplikat} duplikat dilewati.`
+  if (gagal.length) pesan += `\n❌ ${gagal.length} baris tidak lengkap/tidak valid (baris: ${gagal.slice(0, 15).join(', ')}${gagal.length > 15 ? ', …' : ''}).`
+  alert(pesan)
+}
+
+const unduhTemplateCsv = () => {
+  const isi = CSV_KOLOM.join(',') + '\n' +
+    'Andi Saputra,Praktikum Basis Data,Laboratorium Komputer 1 FTTK,0.8568120,104.4932210,2026-03-02T08:00,2026-03-30T16:00,Asisten Praktikum Semester Genap\n'
+  const url = URL.createObjectURL(new Blob([isi], { type: 'text/csv;charset=utf-8' }))
+  const a = document.createElement('a'); a.href = url; a.download = 'template_sertifikat.csv'
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url)
 }
 
 const publishBatch = async () => {
