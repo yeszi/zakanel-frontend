@@ -272,7 +272,7 @@ def download_pdf(public_id):
     penerbit = current_app.supabase.table('users').select('nama_lengkap, username') \
         .eq('id', cert.get('penerbit_id')).execute().data
     penerbit_nama = (penerbit[0].get('nama_lengkap') or penerbit[0].get('username')) if penerbit else '-'
-    logo = os.getenv('LOGO_PATH', os.path.join(os.path.dirname(__file__), '..', '..', 'static', 'logo.png'))
+    logo = os.getenv('LOGO_PATH', os.path.join(os.path.dirname(__file__), '..', '..', 'static', 'logo.jpg'))
     pdf = build_certificate_pdf(
         cert, f"{_base_url()}/verifikasi/valid?id={raw_id}",
         institusi=os.getenv('NAMA_INSTITUSI', 'Fakultas Teknik dan Teknologi Kemaritiman - UMRAH'),
