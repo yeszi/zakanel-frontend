@@ -49,14 +49,23 @@ def _get_receipt(tx_hash):
     if not isinstance(tx_hash, str) or not tx_hash.startswith('0x') or len(tx_hash) != 66:
         return None, None, 'Format tx_hash tidak valid.'
     try:
-        receipt = w3.eth.get_transaction_receipt(tx_hash)
+        # Tunggu sampai node RPC melihat transaksi (MetaMask mengembalikan hash
+        # sebelum transaksi ter-mining / sebelum RPC publik mengindeksnya).
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=25, poll_latency=1.5)
     except Exception:
-        return None, None, 'Transaksi tidak ditemukan di jaringan (tx_hash tidak valid atau belum ter-mining).'
+        return None, None, 'Transaksi belum terdeteksi di jaringan. Tunggu beberapa detik lalu coba terbitkan/konfirmasi lagi.'
     if receipt is None:
         return None, None, 'Transaksi belum ter-mining.'
     if receipt.status != 1:
         return None, None, 'Transaksi gagal (revert) di blockchain.'
-    if receipt.to is None or not same_address(receipt.to, current_app.contract_address):
+    contract_addr = current_app.contract_address
+    langsung = receipt.to is not None and same_address(receipt.to, contract_addr)
+    # Dompet pintar (smart account / delegation, mis. MetaMask) dapat merutekan transaksi lewat
+    # kontrak perantara, sehingga receipt.to bukan kontrak kita. Dalam kasus itu transaksi tetap
+    # diterima HANYA jika ada log yang benar-benar dipancarkan oleh smart contract kita
+    # (event-nya divalidasi lebih lanjut di verify_root_tx / verify_penerbit_tx).
+    lewat_perantara = any(same_address(lg.get('address'), contract_addr) for lg in receipt.get('logs', []))
+    if not (langsung or lewat_perantara):
         return None, None, 'Transaksi tidak ditujukan ke smart contract yang benar.'
     return receipt, contract, None
 
@@ -69,6 +78,7 @@ def verify_root_tx(tx_hash, expected_batch_id, expected_merkle_root, expected_se
     if not same_address(receipt['from'], expected_sender):
         return False, 'Transaksi tidak dikirim oleh wallet penerbit yang sedang login.'
     events = contract.events.RootDisimpan().process_receipt(receipt, errors=DISCARD)
+    events = [ev for ev in events if same_address(ev['address'], current_app.contract_address)]
     if not events:
         return False, 'Transaksi tidak mengandung event RootDisimpan.'
     for ev in events:
@@ -91,6 +101,7 @@ def verify_penerbit_tx(tx_hash, event_name, expected_wallet):
     if not same_address(receipt['from'], onchain_admin):
         return False, 'Transaksi tidak dikirim oleh wallet admin smart contract.'
     events = getattr(contract.events, event_name)().process_receipt(receipt, errors=DISCARD)
+    events = [ev for ev in events if same_address(ev['address'], current_app.contract_address)]
     for ev in events:
         if same_address(ev['args']['wallet'], expected_wallet):
             return True, None

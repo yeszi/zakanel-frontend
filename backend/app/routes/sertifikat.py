@@ -145,6 +145,13 @@ def konfirmasi_batch():
 
     ok, err = verify_root_tx(tx_hash, batch_id, merkle_root, user.get('wallet_address'))
     if not ok:
+        # Diagnostik: tampilkan tujuan & pengirim transaksi yang sebenarnya agar mudah dilacak
+        try:
+            rc = current_app.w3.eth.get_transaction_receipt(tx_hash)
+            err += (f" [tujuan tx: {rc['to']}; kontrak diharapkan: {current_app.contract_address}; "
+                    f"pengirim: {rc['from']}]")
+        except Exception:
+            pass
         log_audit('CERT_PUBLISH', status='failed', target_type='batch', target_id=batch_id, tx_hash=tx_hash,
                   detail={'reason': err})
         return jsonify({'success': False, 'error': f'Konfirmasi ditolak: {err}'}), 400
