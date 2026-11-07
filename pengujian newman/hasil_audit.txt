@@ -1,0 +1,29 @@
+CORS origins diizinkan: ['http://localhost:5173', 'http://localhost:3000', 'https://zakanel-frontend.pages.dev'] ^https://([a-z0-9-]+\.)?zakanel-frontend\.pages\.dev$
+Total entri audit log: 1490 (ID 1 s/d 1490)
+Rantai asli: VALID {'checked': 1490, 'head_hash': 'f742f3c169003890057d3b18aeede791634fb3ae206e75c3d69f6bfe951e7301', 'broken_at_id': None, 'reason': None}
+
+=== REKAP AKTIVITAS (action | status | jumlah) ===
+ACCESS_DENIED | denied | 17
+AUDIT_VERIFY | success | 5
+BATCH_AUDIT | failed | 10
+BATCH_AUDIT | success | 59
+CERT_DOWNLOAD | success | 220
+CERT_PREPARE | success | 8
+CERT_PUBLISH | failed | 5
+CERT_PUBLISH | success | 2
+CERT_VERIFY | failed | 462
+CERT_VERIFY | success | 249
+LOGIN_FAILED | failed | 64
+LOGIN_SUCCESS | success | 365
+LOGOUT | success | 21
+PENERBIT_ADD | success | 1
+PENERBIT_REVOKE | success | 2
+
+Entri target manipulasi: ID 746 (urutan 746 dari 1490)
+
+=== HASIL MANIPULASI ===
+Skenario | Entri dimanipulasi | Hasil | Terdeteksi pada | Penyebab
+Ubah isi kolom detail | ID 746 | Rusak | terdeteksi pada ID 746 | entry_hash tidak cocok (isi entri telah diubah)
+Ubah aktor (actor_username) | ID 746 | Rusak | terdeteksi pada ID 746 | entry_hash tidak cocok (isi entri telah diubah)
+Hapus satu entri | ID 746 | Rusak | terdeteksi pada ID 747 | prev_hash tidak cocok (ada entri yang dihapus/disisipkan)
+Ubah isi lalu hitung ulang entry_hash | ID 746 | Rusak | terdeteksi pada ID 747 | prev_hash tidak cocok (ada entri yang dihapus/disisipkan)

@@ -36,7 +36,6 @@
             <div class="flex items-center justify-end gap-3 mb-3 text-sm">
               <input ref="csvInput" type="file" accept=".csv,text/csv" @change="importCsv" class="hidden" />
               <button type="button" @click="csvInput.click()" class="px-3 py-1 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50">📄 Impor CSV</button>
-              <button type="button" @click="unduhTemplateCsv" class="text-gray-400 hover:text-gray-600 underline">template</button>
             </div>
             <form @submit.prevent="addToBatch" class="space-y-5">
               <div>

@@ -1,0 +1,142 @@
+(node:6852) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+newman
+
+Pengujian RBAC dan JWT
+
+→ POST /api/auth/login (admin)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 954B, 2.6s]
+  √  Status 200
+  √  token diterima
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1217ms]
+  √  Status 200
+  √  token diterima
+
+→ A1 tanpa token: GET /api/penerbit
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/penerbit [401 Unauthorized, 399B, 828ms]
+  √  Status 401
+  √  success = false
+
+→ A2 tanpa token: GET /api/audit
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/audit [401 Unauthorized, 399B, 695ms]
+  √  Status 401
+  √  success = false
+
+→ A3 tanpa token: GET /api/sertifikat
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat [401 Unauthorized, 399B, 516ms]
+  √  Status 401
+  √  success = false
+
+→ A4 tanpa token: GET /api/auth/me
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/me [401 Unauthorized, 399B, 642ms]
+  √  Status 401
+  √  success = false
+
+→ A5 tanpa token: GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/e071b1b5-54cb-3215-6ef3-08fe728ea7bd/pdf [401 Unauthorized, 399B, 625ms]
+  √  Status 401
+  √  success = false
+
+→ B1 token acak: GET /api/auth/me
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/me [401 Unauthorized, 380B, 354ms]
+  √  Status 401
+  √  success = false
+
+→ B2 tanda tangan diubah: GET /api/audit
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/audit [401 Unauthorized, 380B, 283ms]
+  √  Status 401
+  √  success = false
+
+→ B3 payload role diubah ke admin: GET /api/audit
+  ┌
+  │ `Using "atob" is deprecated. Use "require('atob')" ins
+  │ tead.`
+  │ `Using "btoa" is deprecated. Use "require('btoa')" ins
+  │ tead.`
+  └
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/audit [401 Unauthorized, 380B, 296ms]
+  √  Status 401
+  √  success = false
+
+→ B4 algoritma none: GET /api/audit
+  ┌
+  │ `Using "btoa" is deprecated. Use "require('btoa')" ins
+  │ tead.`
+  └
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/audit [401 Unauthorized, 380B, 283ms]
+  √  Status 401
+  √  success = false
+
+→ C1 penerbit: GET /api/penerbit
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/penerbit [403 Forbidden, 421B, 329ms]
+  √  Status 403
+  √  success = false
+
+→ C2 penerbit: GET /api/audit
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/audit [403 Forbidden, 421B, 390ms]
+  √  Status 403
+  √  success = false
+
+→ C3 penerbit: GET /api/audit/verify
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/audit/verify [403 Forbidden, 421B, 589ms]
+  √  Status 403
+  √  success = false
+
+→ C4 penerbit: POST /api/penerbit
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/penerbit [403 Forbidden, 421B, 370ms]
+  √  Status 403
+  √  success = false
+
+→ C5 admin: GET /api/sertifikat/draft
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/draft [403 Forbidden, 421B, 663ms]
+  √  Status 403
+  √  success = false
+
+→ C6 admin: POST /api/sertifikat/prepare
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/prepare [403 Forbidden, 421B, 498ms]
+  √  Status 403
+  √  success = false
+
+→ C7 admin: POST /api/sertifikat/konfirmasi
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/konfirmasi [403 Forbidden, 421B, 433ms]
+  √  Status 403
+  √  success = false
+
+→ C8 tanpa login: POST /api/auth/register
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/register [403 Forbidden, 423B, 74ms]
+  √  Status 403
+  √  success = false
+
+→ D1 admin: GET /api/audit
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/audit [200 OK, 57.11kB, 373ms]
+  √  Status 200
+
+→ D2 penerbit: GET /api/sertifikat
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat [200 OK, 52.12kB, 397ms]
+  √  Status 200
+
+→ D3 admin: GET /api/audit/verify
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/audit/verify [200 OK, 502B, 795ms]
+  √  Status 200
+
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                 22 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                 22 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                  5 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                 41 │                 0 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 15.5s                                        │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 111.06kB (approx)                           │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 605ms [min: 74ms, max: 2.6s, s.d.: 508ms] │
+└──────────────────────────────────────────────────────────────────┘

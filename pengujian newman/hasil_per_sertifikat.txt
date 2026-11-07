@@ -1,0 +1,1201 @@
+(node:7136) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+newman
+
+Pengujian Per Sertifikat (n=56)
+
+Iteration 1/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 3.6s]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/e071b1b5-54cb-3215-6ef3-08fe728ea7bd [200 OK, 929B, 2.5s]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/e071b1b5-54cb-3215-6ef3-08fe728ea7bd [200 OK, 2.04kB, 515ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/e071b1b5-54cb-3215-6ef3-08fe728ea7bd/pdf [200 OK, 43.25kB, 1935ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 2/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1094ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/3d00ed41-fc32-47cf-050f-77816f2a7bb4 [200 OK, 929B, 1737ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/3d00ed41-fc32-47cf-050f-77816f2a7bb4 [200 OK, 2.01kB, 321ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/3d00ed41-fc32-47cf-050f-77816f2a7bb4/pdf [200 OK, 44.07kB, 1102ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 3/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1089ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/95d14e50-95c7-abb3-d72a-018d707b2c69 [200 OK, 929B, 1550ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/95d14e50-95c7-abb3-d72a-018d707b2c69 [200 OK, 1.93kB, 296ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/95d14e50-95c7-abb3-d72a-018d707b2c69/pdf [200 OK, 43.52kB, 1011ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 4/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1112ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/c03d2f3c-df44-bcdb-6907-bd500f4af69f [200 OK, 929B, 1411ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/c03d2f3c-df44-bcdb-6907-bd500f4af69f [200 OK, 1.98kB, 417ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/c03d2f3c-df44-bcdb-6907-bd500f4af69f/pdf [200 OK, 43.69kB, 1101ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 5/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1114ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/3b3397af-bab3-b65b-06c5-5ddf03f5fddb [200 OK, 935B, 1407ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/3b3397af-bab3-b65b-06c5-5ddf03f5fddb [200 OK, 2.01kB, 407ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/3b3397af-bab3-b65b-06c5-5ddf03f5fddb/pdf [200 OK, 43.46kB, 1470ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 6/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1188ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/eea04eac-7eaf-a18e-c7be-f0f581b75985 [200 OK, 934B, 1524ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/eea04eac-7eaf-a18e-c7be-f0f581b75985 [200 OK, 1.99kB, 294ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/eea04eac-7eaf-a18e-c7be-f0f581b75985/pdf [200 OK, 43.87kB, 906ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 7/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1252ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/dae9023c-31e8-ab41-39a4-1c51436aa6ec [200 OK, 935B, 1606ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/dae9023c-31e8-ab41-39a4-1c51436aa6ec [200 OK, 1.97kB, 370ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/dae9023c-31e8-ab41-39a4-1c51436aa6ec/pdf [200 OK, 43.76kB, 1050ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 8/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1068ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/8daddda9-6bdf-8202-d145-0038197d64cd [200 OK, 935B, 1493ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/8daddda9-6bdf-8202-d145-0038197d64cd [200 OK, 2.01kB, 532ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/8daddda9-6bdf-8202-d145-0038197d64cd/pdf [200 OK, 43.58kB, 977ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 9/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1002ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/1fba350c-4ce5-35cd-ae2e-739a53a3e1f6 [200 OK, 974B, 1521ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/1fba350c-4ce5-35cd-ae2e-739a53a3e1f6 [200 OK, 2.01kB, 382ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/1fba350c-4ce5-35cd-ae2e-739a53a3e1f6/pdf [200 OK, 43.5kB, 857ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 10/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1143ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/74785063-2ce6-4eb9-8872-89008db75929 [200 OK, 973B, 1506ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/74785063-2ce6-4eb9-8872-89008db75929 [200 OK, 1.96kB, 347ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/74785063-2ce6-4eb9-8872-89008db75929/pdf [200 OK, 43.85kB, 1077ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 11/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1547ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/82d5f1c7-0043-060c-c8db-30c109d472b5 [200 OK, 971B, 1383ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/82d5f1c7-0043-060c-c8db-30c109d472b5 [200 OK, 1.98kB, 561ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/82d5f1c7-0043-060c-c8db-30c109d472b5/pdf [200 OK, 43.66kB, 1107ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 12/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 938ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/3b1d98cd-64f4-ec13-2738-0af3517f59a1 [200 OK, 970B, 1520ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/3b1d98cd-64f4-ec13-2738-0af3517f59a1 [200 OK, 2.04kB, 351ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/3b1d98cd-64f4-ec13-2738-0af3517f59a1/pdf [200 OK, 43.59kB, 1205ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 13/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1026ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/117104bd-906b-5785-3a27-a936936b7866 [200 OK, 1kB, 1369ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/117104bd-906b-5785-3a27-a936936b7866 [200 OK, 1.97kB, 425ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/117104bd-906b-5785-3a27-a936936b7866/pdf [200 OK, 43.77kB, 1187ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 14/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1166ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/642666bf-ccdd-2e60-862e-ac31d6f53a85 [200 OK, 1.01kB, 2.3s]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/642666bf-ccdd-2e60-862e-ac31d6f53a85 [200 OK, 2kB, 466ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/642666bf-ccdd-2e60-862e-ac31d6f53a85/pdf [200 OK, 43.85kB, 1070ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 15/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1228ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/5214c1ba-3ef7-8176-5786-844eeccbf094 [200 OK, 1kB, 1610ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/5214c1ba-3ef7-8176-5786-844eeccbf094 [200 OK, 1.97kB, 363ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/5214c1ba-3ef7-8176-5786-844eeccbf094/pdf [200 OK, 43.64kB, 1053ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 16/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1318ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/b456e96f-d813-a174-ad0c-06e46f487699 [200 OK, 1kB, 1705ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/b456e96f-d813-a174-ad0c-06e46f487699 [200 OK, 1.97kB, 514ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/b456e96f-d813-a174-ad0c-06e46f487699/pdf [200 OK, 43.53kB, 1247ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 17/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 947ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/c08271fe-aa70-4511-61ee-714deea7fa62 [200 OK, 1kB, 1718ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/c08271fe-aa70-4511-61ee-714deea7fa62 [200 OK, 1.97kB, 310ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/c08271fe-aa70-4511-61ee-714deea7fa62/pdf [200 OK, 43.48kB, 915ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 18/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 984ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/b3253970-b045-9bb0-da61-78d888c7d10d [200 OK, 1.01kB, 1644ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/b3253970-b045-9bb0-da61-78d888c7d10d [200 OK, 2kB, 495ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/b3253970-b045-9bb0-da61-78d888c7d10d/pdf [200 OK, 43.77kB, 1199ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 19/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1087ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/d7d6e628-4288-69c5-2dba-f929259ee8ed [200 OK, 999B, 1902ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/d7d6e628-4288-69c5-2dba-f929259ee8ed [200 OK, 2.01kB, 443ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/d7d6e628-4288-69c5-2dba-f929259ee8ed/pdf [200 OK, 43.37kB, 1051ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 20/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 908ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/90a0e693-e1d1-151d-cd1a-7fcf54ab47ed [200 OK, 1kB, 1638ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/90a0e693-e1d1-151d-cd1a-7fcf54ab47ed [200 OK, 1.95kB, 419ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/90a0e693-e1d1-151d-cd1a-7fcf54ab47ed/pdf [200 OK, 44kB, 1470ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 21/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 881ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/60b3f7ab-b23c-8957-6351-a746d4c4ff8a [200 OK, 994B, 1445ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/60b3f7ab-b23c-8957-6351-a746d4c4ff8a [200 OK, 1.99kB, 458ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/60b3f7ab-b23c-8957-6351-a746d4c4ff8a/pdf [200 OK, 43.94kB, 983ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 22/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 991ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/ab1a8053-d1ed-6fa7-9d69-da6cb2f42893 [200 OK, 1kB, 1585ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/ab1a8053-d1ed-6fa7-9d69-da6cb2f42893 [200 OK, 2.01kB, 269ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/ab1a8053-d1ed-6fa7-9d69-da6cb2f42893/pdf [200 OK, 43.56kB, 1281ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 23/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 936ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/af7a7dfe-b471-451c-a9e0-301585c79499 [200 OK, 992B, 1612ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/af7a7dfe-b471-451c-a9e0-301585c79499 [200 OK, 1.94kB, 396ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/af7a7dfe-b471-451c-a9e0-301585c79499/pdf [200 OK, 43.67kB, 1137ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 24/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 816ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/29907ad5-6cb5-83e5-99a1-1b99a53e72d8 [200 OK, 994B, 1548ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/29907ad5-6cb5-83e5-99a1-1b99a53e72d8 [200 OK, 1.99kB, 423ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/29907ad5-6cb5-83e5-99a1-1b99a53e72d8/pdf [200 OK, 43.55kB, 1200ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 25/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 975ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/6a3bd6a7-f3a7-cb4c-f5a0-027811cde758 [200 OK, 989B, 1392ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/6a3bd6a7-f3a7-cb4c-f5a0-027811cde758 [200 OK, 2.03kB, 397ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/6a3bd6a7-f3a7-cb4c-f5a0-027811cde758/pdf [200 OK, 43.63kB, 1058ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 26/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 911ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/7cb954b6-1e2d-572a-7c38-83ba9b5eeb05 [200 OK, 996B, 1680ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/7cb954b6-1e2d-572a-7c38-83ba9b5eeb05 [200 OK, 1.94kB, 326ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/7cb954b6-1e2d-572a-7c38-83ba9b5eeb05/pdf [200 OK, 43.71kB, 1125ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 27/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 940ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/ca7c9790-b946-b69f-9076-955eb0960d35 [200 OK, 988B, 1503ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/ca7c9790-b946-b69f-9076-955eb0960d35 [200 OK, 1.99kB, 363ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/ca7c9790-b946-b69f-9076-955eb0960d35/pdf [200 OK, 44.04kB, 1363ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 28/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 719ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/eb37cbaf-5977-bdd9-9fa9-6484af1a9aa2 [200 OK, 988B, 1614ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/eb37cbaf-5977-bdd9-9fa9-6484af1a9aa2 [200 OK, 1.99kB, 344ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/eb37cbaf-5977-bdd9-9fa9-6484af1a9aa2/pdf [200 OK, 43.83kB, 1122ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 29/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 984ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/730abbcd-ba8d-0746-e5c0-5479cb1e4324 [200 OK, 965B, 1408ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/730abbcd-ba8d-0746-e5c0-5479cb1e4324 [200 OK, 2.04kB, 356ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/730abbcd-ba8d-0746-e5c0-5479cb1e4324/pdf [200 OK, 43.67kB, 1064ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 30/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 779ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/81d13013-f9e5-6119-7145-b8625946007d [200 OK, 946B, 1482ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/81d13013-f9e5-6119-7145-b8625946007d [200 OK, 2.01kB, 408ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/81d13013-f9e5-6119-7145-b8625946007d/pdf [200 OK, 43.67kB, 1076ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 31/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1147ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/b0c30258-b764-d1e9-e064-b25509e72563 [200 OK, 953B, 1737ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/b0c30258-b764-d1e9-e064-b25509e72563 [200 OK, 1.98kB, 309ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/b0c30258-b764-d1e9-e064-b25509e72563/pdf [200 OK, 43.56kB, 1149ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 32/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1378ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/a889b18a-a9b6-7d9f-34f9-ec0d4a49ce91 [200 OK, 959B, 1736ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/a889b18a-a9b6-7d9f-34f9-ec0d4a49ce91 [200 OK, 1.91kB, 422ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/a889b18a-a9b6-7d9f-34f9-ec0d4a49ce91/pdf [200 OK, 43.96kB, 1212ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 33/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1618ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/014ef68b-0f0c-e8e0-819b-6a604d45827e [200 OK, 940B, 1519ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/014ef68b-0f0c-e8e0-819b-6a604d45827e [200 OK, 1.97kB, 409ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/014ef68b-0f0c-e8e0-819b-6a604d45827e/pdf [200 OK, 43.92kB, 1468ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 34/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 843ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/7cb41f27-8d8e-d9ab-712d-ba741be895b1 [200 OK, 947B, 1839ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/7cb41f27-8d8e-d9ab-712d-ba741be895b1 [200 OK, 2.03kB, 340ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/7cb41f27-8d8e-d9ab-712d-ba741be895b1/pdf [200 OK, 43.43kB, 1152ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 35/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1275ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/4bfb3661-d1cf-a4ef-3b5b-67ecbd77e005 [200 OK, 927B, 1484ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/4bfb3661-d1cf-a4ef-3b5b-67ecbd77e005 [200 OK, 2.01kB, 440ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/4bfb3661-d1cf-a4ef-3b5b-67ecbd77e005/pdf [200 OK, 43.58kB, 1170ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 36/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1328ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/5039807f-2dcb-6390-2bd9-dda786c7aab0 [200 OK, 933B, 1415ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/5039807f-2dcb-6390-2bd9-dda786c7aab0 [200 OK, 1.99kB, 358ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/5039807f-2dcb-6390-2bd9-dda786c7aab0/pdf [200 OK, 43.44kB, 1326ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 37/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1254ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/c379d51a-d6d0-b828-2fab-3d0f046cfc4c [200 OK, 941B, 1774ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/c379d51a-d6d0-b828-2fab-3d0f046cfc4c [200 OK, 2.05kB, 451ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/c379d51a-d6d0-b828-2fab-3d0f046cfc4c/pdf [200 OK, 43.54kB, 1155ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 38/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 798ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/33108c71-27e5-ed36-6dc0-2399ffbab80a [200 OK, 932B, 1508ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/33108c71-27e5-ed36-6dc0-2399ffbab80a [200 OK, 2kB, 432ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/33108c71-27e5-ed36-6dc0-2399ffbab80a/pdf [200 OK, 43.51kB, 1121ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 39/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1039ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/591228f5-ae73-afae-a4a0-c6ae2e3bffe3 [200 OK, 940B, 1612ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/591228f5-ae73-afae-a4a0-c6ae2e3bffe3 [200 OK, 2.03kB, 313ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/591228f5-ae73-afae-a4a0-c6ae2e3bffe3/pdf [200 OK, 43.72kB, 1212ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 40/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1190ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/28f3af81-8c00-1157-f87a-b2241918769e [200 OK, 935B, 1555ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/28f3af81-8c00-1157-f87a-b2241918769e [200 OK, 2.03kB, 303ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/28f3af81-8c00-1157-f87a-b2241918769e/pdf [200 OK, 43.67kB, 1092ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 41/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1000ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/eae6ca9c-86c0-4dd0-815f-0bb17a80adb3 [200 OK, 939B, 1433ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/eae6ca9c-86c0-4dd0-815f-0bb17a80adb3 [200 OK, 1.96kB, 338ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/eae6ca9c-86c0-4dd0-815f-0bb17a80adb3/pdf [200 OK, 43.78kB, 1029ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 42/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1030ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/fd0f9a82-521a-61ab-78f3-2ae5fc2eb677 [200 OK, 931B, 1518ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/fd0f9a82-521a-61ab-78f3-2ae5fc2eb677 [200 OK, 1.98kB, 455ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/fd0f9a82-521a-61ab-78f3-2ae5fc2eb677/pdf [200 OK, 43.69kB, 1034ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 43/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1158ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/e4de0095-efb7-c3ab-4429-c6ca3e0b443d [200 OK, 929B, 1619ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/e4de0095-efb7-c3ab-4429-c6ca3e0b443d [200 OK, 1.95kB, 320ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/e4de0095-efb7-c3ab-4429-c6ca3e0b443d/pdf [200 OK, 43.72kB, 1019ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 44/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 724ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/6b4e80af-06d8-a3ce-568c-830812984c14 [200 OK, 939B, 1639ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/6b4e80af-06d8-a3ce-568c-830812984c14 [200 OK, 1.99kB, 320ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/6b4e80af-06d8-a3ce-568c-830812984c14/pdf [200 OK, 43.57kB, 1666ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 45/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 975ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/975c1020-102b-f269-e60d-11c9f776c0c6 [200 OK, 941B, 1584ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/975c1020-102b-f269-e60d-11c9f776c0c6 [200 OK, 1.98kB, 432ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/975c1020-102b-f269-e60d-11c9f776c0c6/pdf [200 OK, 43.86kB, 1096ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 46/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1165ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/0f911dbb-d254-4340-c896-38204dc3b07b [200 OK, 941B, 1503ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/0f911dbb-d254-4340-c896-38204dc3b07b [200 OK, 2.03kB, 521ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/0f911dbb-d254-4340-c896-38204dc3b07b/pdf [200 OK, 43.55kB, 1045ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 47/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 797ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/7a9950d0-4bee-a912-70b6-cb9b5465842f [200 OK, 938B, 1484ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/7a9950d0-4bee-a912-70b6-cb9b5465842f [200 OK, 1.97kB, 407ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/7a9950d0-4bee-a912-70b6-cb9b5465842f/pdf [200 OK, 43.68kB, 1025ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 48/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1089ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/59c46f49-0105-4e26-f193-4875faa54c4c [200 OK, 928B, 1472ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/59c46f49-0105-4e26-f193-4875faa54c4c [200 OK, 1.96kB, 370ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/59c46f49-0105-4e26-f193-4875faa54c4c/pdf [200 OK, 43.75kB, 1005ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 49/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1081ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/ae7004ad-84a1-ea3f-e4b9-4f904f026006 [200 OK, 924B, 1443ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/ae7004ad-84a1-ea3f-e4b9-4f904f026006 [200 OK, 1.95kB, 415ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/ae7004ad-84a1-ea3f-e4b9-4f904f026006/pdf [200 OK, 43.68kB, 1378ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 50/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1208ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/c7ba5949-9e44-243f-5826-c7f3d927281a [200 OK, 918B, 1544ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/c7ba5949-9e44-243f-5826-c7f3d927281a [200 OK, 1.99kB, 321ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/c7ba5949-9e44-243f-5826-c7f3d927281a/pdf [200 OK, 43.81kB, 1113ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 51/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 927ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/3db7fa20-6f0b-d343-aa37-c88144ce75d7 [200 OK, 932B, 1533ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/3db7fa20-6f0b-d343-aa37-c88144ce75d7 [200 OK, 2.01kB, 394ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/3db7fa20-6f0b-d343-aa37-c88144ce75d7/pdf [200 OK, 43.88kB, 1063ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 52/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1063ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/91f02ba9-1b3c-ae09-7f7c-484d22b7c5dd [200 OK, 941B, 1493ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/91f02ba9-1b3c-ae09-7f7c-484d22b7c5dd [200 OK, 2.04kB, 410ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/91f02ba9-1b3c-ae09-7f7c-484d22b7c5dd/pdf [200 OK, 43.61kB, 1082ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 53/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 958ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/1dc816a1-e33c-a14c-896e-fe8a46915a12 [200 OK, 945B, 1752ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/1dc816a1-e33c-a14c-896e-fe8a46915a12 [200 OK, 1.93kB, 343ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/1dc816a1-e33c-a14c-896e-fe8a46915a12/pdf [200 OK, 43.71kB, 1171ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 54/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 991ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/555ec0b6-6425-e0a1-b955-3298d5345611 [200 OK, 944B, 1396ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/555ec0b6-6425-e0a1-b955-3298d5345611 [200 OK, 1.96kB, 359ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/555ec0b6-6425-e0a1-b955-3298d5345611/pdf [200 OK, 43.41kB, 1047ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 55/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1100ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/f7b20509-114f-1146-1147-9fd628eceb2f [200 OK, 968B, 1550ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/f7b20509-114f-1146-1147-9fd628eceb2f [200 OK, 1.97kB, 446ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/f7b20509-114f-1146-1147-9fd628eceb2f/pdf [200 OK, 43.57kB, 972ms]
+  √  Status 200
+  √  berkas PDF
+
+Iteration 56/56
+
+→ POST /api/auth/login (penerbit)
+  POST https://villas-viewers-gardens-permit.trycloudflare.com/api/auth/login [200 OK, 960B, 1036ms]
+  √  Status 200
+  √  token diterima
+
+→ GET /api/sertifikat/verify/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/verify/11c85f31-ffb1-83a5-8bd4-25aba2a9bc8c [200 OK, 953B, 1455ms]
+  √  Status 200
+  √  valid = true
+
+→ GET /api/sertifikat/generate-qr/{id}
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/generate-qr/11c85f31-ffb1-83a5-8bd4-25aba2a9bc8c [200 OK, 1.93kB, 351ms]
+  √  Status 200
+
+→ GET /api/sertifikat/{id}/pdf
+  GET https://villas-viewers-gardens-permit.trycloudflare.com/api/sertifikat/11c85f31-ffb1-83a5-8bd4-25aba2a9bc8c/pdf [200 OK, 43.4kB, 1163ms]
+  √  Status 200
+  √  berkas PDF
+
+┌─────────────────────────┬─────────────────────┬────────────────────┐
+│                         │            executed │             failed │
+├─────────────────────────┼─────────────────────┼────────────────────┤
+│              iterations │                  56 │                  0 │
+├─────────────────────────┼─────────────────────┼────────────────────┤
+│                requests │                 224 │                  0 │
+├─────────────────────────┼─────────────────────┼────────────────────┤
+│            test-scripts │                 224 │                  0 │
+├─────────────────────────┼─────────────────────┼────────────────────┤
+│      prerequest-scripts │                 168 │                  0 │
+├─────────────────────────┼─────────────────────┼────────────────────┤
+│              assertions │                 392 │                  0 │
+├─────────────────────────┴─────────────────────┴────────────────────┤
+│ total run duration: 4m 18.5s                                       │
+├────────────────────────────────────────────────────────────────────┤
+│ total data received: 2.58MB (approx)                               │
+├────────────────────────────────────────────────────────────────────┤
+│ average response time: 1059ms [min: 269ms, max: 3.6s, s.d.: 492ms] │
+└────────────────────────────────────────────────────────────────────┘

@@ -1,0 +1,28 @@
+CORS origins diizinkan: ['http://localhost:5173', 'http://localhost:3000', 'https://zakanel-frontend.pages.dev'] ^https://([a-z0-9-]+\.)?zakanel-frontend\.pages\.dev$
+Batch 1793822023113: 56 sertifikat. Cadangan: /tmp/cadangan_sertifikat.json
+Sebelum uji: valid 56/56
+  5/56 sertifikat
+  10/56 sertifikat
+  15/56 sertifikat
+  20/56 sertifikat
+  25/56 sertifikat
+  30/56 sertifikat
+  35/56 sertifikat
+  40/56 sertifikat
+  45/56 sertifikat
+  50/56 sertifikat
+  55/56 sertifikat
+
+=== HASIL ===
+Variabel | Terdeteksi | % | Rata2 bit berubah | Min-Maks
+nama_kegiatan | 56/56 | 100% | 129.12 | 112-148
+nama_lokasi | 56/56 | 100% | 126.52 | 111-141
+latitude | 56/56 | 100% | 128.54 | 110-147
+longitude | 56/56 | 100% | 128.12 | 114-146
+waktu_mulai | 56/56 | 100% | 128.39 | 114-144
+waktu_selesai | 56/56 | 100% | 128.70 | 114-146
+keterangan | 56/56 | 100% | 129.79 | 112-159
+nama_peserta | 56/56 | 100% | 129.75 | 115-144
+TOTAL | 448/448 | 100% | 128.62 (50.24%) | 110-159
+Latensi verify saat dimanipulasi: rata2 1336 ms (n=448)
+Setelah pemulihan: valid 56/56
