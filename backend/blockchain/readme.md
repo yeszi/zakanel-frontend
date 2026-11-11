@@ -1,10 +1,13 @@
+semoga grayesi silitonga sukses ya, pengujinya baik kasih nilai dan ga banyak nanya
+
+
 cara untuk membuat file yang akan di deploy:
 
 
 
 > npm init -y
 
-// setelah itu 
+// setelah itu
 
 > npm install --save-dev hardhat
 
@@ -13,6 +16,4 @@ cara untuk membuat file yang akan di deploy:
 > npm install dotenv
 
 > npx hardhat init
-
-
 
