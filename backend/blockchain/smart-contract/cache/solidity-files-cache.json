@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\zakanel-frontend\\backend\\blockchain\\smart-contract\\contracts\\SertifikatVerifikasi.sol": {
+      "lastModificationDate": 1794254901356,
+      "contentHash": "6dc4a57da0e0cd5528a74a85ca4304b7",
+      "sourceName": "smart-contract/contracts/SertifikatVerifikasi.sol",
+      "solcConfig": {
+        "version": "0.8.28",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.28"
+      ],
+      "artifacts": [
+        "SertifikatVerifikasi"
+      ]
+    }
+  }
+}

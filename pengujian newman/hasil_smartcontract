@@ -1,0 +1,24 @@
+◇ injected env (15) from ..\.env // tip: ⌘ override existing { override: true }
+
+
+  SertifikatVerifikasi
+    Deployment
+      √ menetapkan pembuat kontrak sebagai admin (960ms)
+    Manajemen penerbit (RBAC on-chain)
+      √ admin dapat menambah penerbit dan memancarkan event
+      √ non-admin tidak dapat menambah penerbit
+      √ admin dapat mencabut penerbit
+      √ non-admin tidak dapat mencabut penerbit
+    Penyimpanan Merkle Root
+      √ penerbit aktif dapat menyimpan root dan membacanya kembali
+      √ wallet yang tidak terdaftar tidak dapat menyimpan root
+      √ penerbit yang sudah dicabut tidak dapat menyimpan root
+      √ batch yang belum terdaftar mengembalikan root kosong
+      √ verifyCertificate menolak root yang tidak cocok
+    Biaya gas
+      gas tambahPenerbit=47516, simpanRoot=72745, cabutPenerbit=25638
+      √ mencatat gas used untuk setiap fungsi
+
+
+  11 passing (1s)
+

@@ -1,5 +1,6 @@
 // Pengujian unit smart contract SertifikatVerifikasi
 // Jalankan:  npx hardhat test        (laporan gas: REPORT_GAS=1 npx hardhat test)
+require("@nomicfoundation/hardhat-chai-matchers");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
