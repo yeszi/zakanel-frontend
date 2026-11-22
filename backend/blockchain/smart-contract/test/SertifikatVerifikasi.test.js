@@ -92,6 +92,63 @@ describe("SertifikatVerifikasi", function () {
     });
   });
 
+  describe("Revisi F02: Merkle Root tidak dapat ditimpa", function () {
+    it("menolak penimpaan Merkle Root pada batchId yang sama", async function () {
+      const { kontrak, penerbit, root, publicId } = await loadFixture(deployFixture);
+      await kontrak.tambahPenerbit(penerbit.address);
+      await kontrak.connect(penerbit).simpanRoot(11n, root, publicId);
+      const rootLain = ethers.keccak256(ethers.toUtf8Bytes("root-palsu"));
+      const pidLain = ethers.encodeBytes32String("pid-lain");
+      await expect(kontrak.connect(penerbit).simpanRoot(11n, rootLain, pidLain))
+        .to.be.revertedWith("Batch sudah memiliki Merkle Root");
+      expect(await kontrak.getRoot(11n)).to.equal(root);
+    });
+
+    it("menolak public ID yang sudah terdaftar (replay ke batch lain)", async function () {
+      const { kontrak, penerbit, root, publicId } = await loadFixture(deployFixture);
+      await kontrak.tambahPenerbit(penerbit.address);
+      await kontrak.connect(penerbit).simpanRoot(12n, root, publicId);
+      const rootLain = ethers.keccak256(ethers.toUtf8Bytes("root-lain"));
+      await expect(kontrak.connect(penerbit).simpanRoot(13n, rootLain, publicId))
+        .to.be.revertedWith("Public ID sudah terdaftar");
+    });
+
+    it("menolak batchId 0 dan Merkle Root kosong", async function () {
+      const { kontrak, penerbit, root, publicId } = await loadFixture(deployFixture);
+      await kontrak.tambahPenerbit(penerbit.address);
+      await expect(kontrak.connect(penerbit).simpanRoot(0n, root, publicId))
+        .to.be.revertedWith("batchId tidak valid");
+      await expect(kontrak.connect(penerbit).simpanRoot(14n, ethers.ZeroHash, publicId))
+        .to.be.revertedWith("Merkle Root kosong");
+    });
+  });
+
+  describe("Benchmark gas 56 / 24 / 1 transaksi (pembanding terkontrol)", function () {
+    it("mencatat total gas tiga strategi pencatatan", async function () {
+      const { kontrak, penerbit } = await loadFixture(deployFixture);
+      await kontrak.tambahPenerbit(penerbit.address);
+      let nextBatch = 100000n, nextPid = 0;
+      const rootAcak = () => ethers.hexlify(ethers.randomBytes(32));
+      const pid = () => ethers.zeroPadValue(ethers.toBeHex(++nextPid), 32);
+      async function jalankan(jumlahTx) {
+        let total = 0n;
+        for (let i = 0; i < jumlahTx; i++) {
+          const rc = await (await kontrak.connect(penerbit).simpanRoot(++nextBatch, rootAcak(), pid())).wait();
+          total += rc.gasUsed;
+        }
+        return total;
+      }
+      const perSertifikat = await jalankan(56);
+      const perKegiatan = await jalankan(24);
+      const satuBatch = await jalankan(1);
+      const hemat = (a, b) => (100 * (Number(a) - Number(b)) / Number(a)).toFixed(2);
+      console.log(`      per sertifikat (56 tx) = ${perSertifikat} gas`);
+      console.log(`      per kegiatan   (24 tx) = ${perKegiatan} gas (hemat ${hemat(perSertifikat, perKegiatan)}%)`);
+      console.log(`      satu batch      (1 tx) = ${satuBatch} gas (hemat ${hemat(perSertifikat, satuBatch)}%)`);
+      expect(satuBatch).to.be.lessThan(perKegiatan);
+    });
+  });
+
   describe("Biaya gas", function () {
     it("mencatat gas used untuk setiap fungsi", async function () {
       const { kontrak, penerbit, root, publicId } = await loadFixture(deployFixture);

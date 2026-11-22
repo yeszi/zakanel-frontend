@@ -3,13 +3,14 @@ pragma solidity ^0.8.28;
 
 contract SertifikatVerifikasi {
     address public admin;
-    
+
     mapping(address => bool) public penerbitAktif;
     mapping(uint256 => bytes32) public merkleRoots;
-    
+
     // simpan public id di blockchain
     mapping(bytes32 => uint256) public publicIdToBatchId;
 
+    // event TIDAK diubah, jadi ABI event di backend (chain.py) tetap cocok
     event PenerbitDitambahkan(address indexed wallet);
     event PenerbitDicabut(address indexed wallet);
     event RootDisimpan(uint256 indexed batchId, bytes32 merkleRoot);
@@ -31,10 +32,16 @@ contract SertifikatVerifikasi {
 
     // fungsi simpan root dan publik id
     function simpanRoot(
-        uint256 _batchId, 
+        uint256 _batchId,
         bytes32 _merkleRoot,
         bytes32 _publicId
     ) external hanyaPenerbitAktif {
+        // revisi F02: root yang sudah tersimpan tidak bisa ditimpa
+        require(_batchId > 0, "batchId tidak valid");
+        require(_merkleRoot != bytes32(0), "Merkle Root kosong");
+        require(merkleRoots[_batchId] == bytes32(0), "Batch sudah memiliki Merkle Root");
+        require(publicIdToBatchId[_publicId] == 0, "Public ID sudah terdaftar");
+
         merkleRoots[_batchId] = _merkleRoot;
         publicIdToBatchId[_publicId] = _batchId;
         emit RootDisimpan(_batchId, _merkleRoot);
