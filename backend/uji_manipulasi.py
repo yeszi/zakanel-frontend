@@ -18,8 +18,15 @@ json.dump(rows, open('/tmp/cadangan_sertifikat.json', 'w'), default=str)
 print(f'Batch {bid}: {len(rows)} sertifikat. Cadangan: /tmp/cadangan_sertifikat.json', flush=True)
 
 def verify(pid):
-    with urllib.request.urlopen(f'{BASE}/api/sertifikat/verify/{pid}', timeout=120) as r:
-        return json.load(r)['valid']
+    # dicoba ulang bila RPC/Infura sedang lambat (503/timeout), agar skrip tidak berhenti di tengah
+    for coba in range(5):
+        try:
+            with urllib.request.urlopen(f'{BASE}/api/sertifikat/verify/{pid}', timeout=120) as r:
+                return json.load(r)['valid']
+        except Exception as e:
+            print(f'    verify {pid[:8]} gagal ({e}); coba lagi {coba + 1}/5', flush=True)
+            time.sleep(3 * (coba + 1))
+    raise RuntimeError('verify gagal 5 kali berturut-turut')
 
 def mutate(f, v):
     if f in ('latitude', 'longitude'): return round(float(v) + 0.0000001, 7)
@@ -36,6 +43,9 @@ def bits(a, b): return bin(int.from_bytes(a, 'big') ^ int.from_bytes(b, 'big')).
 det = {f: 0 for f in FIELDS}; bt = {f: [] for f in FIELDS}; lat = []
 awal = sum(verify(r['public_id']) is True for r in rows)
 print(f'Sebelum uji: valid {awal}/{len(rows)}', flush=True)
+if awal != len(rows):
+    print('BERHENTI: ada sertifikat yang sudah tidak valid sebelum uji. Jalankan dulu: python /app/cek_perbaiki.py')
+    sys.exit(1)
 for k, r in enumerate(rows):
     for f in FIELDS:
         o = r[f]; m = mutate(f, o)

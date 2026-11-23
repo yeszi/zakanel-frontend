@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\zakanel-frontend\\backend\\blockchain\\smart-contract\\contracts\\SertifikatVerifikasi.sol": {
-      "lastModificationDate": 1794254901356,
-      "contentHash": "6dc4a57da0e0cd5528a74a85ca4304b7",
+      "lastModificationDate": 1795368514777,
+      "contentHash": "93fc67a8ef78ee92d7fac982f48e731b",
       "sourceName": "smart-contract/contracts/SertifikatVerifikasi.sol",
       "solcConfig": {
         "version": "0.8.28",
